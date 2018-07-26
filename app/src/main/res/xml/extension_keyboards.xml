@@ -132,6 +132,15 @@
         index="9"
         />
 
+    <ExtensionKeyboard
+        id="7f8cd14d-e50f-4039-b9a9-8e2ba575e82b"
+        nameResId="@string/extension_kbd_bottom_complex"
+        extensionKeyboardResId="@xml/ext_kbd_bottom_row_complex"
+        extensionKeyboardType="@integer/extension_keyboard_type_bottom_row"
+        description=""
+        index="10"
+        />
+
     <!-- top extension keyboards -->
     <ExtensionKeyboard
             id="6f1ecea0-dee2-11e0-9572-0800200c9a66"
