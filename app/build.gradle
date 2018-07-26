@@ -158,7 +158,7 @@ dependencies {
     implementation project(':prefs')
     implementation project(':pixel')
 
-    implementation "com.github.AnySoftKeyboard:AnySoftKeyboard-API:$AnySoftKeyboardApiVersion"
+    implementation "com.github.pelya:AnySoftKeyboard-API:$AnySoftKeyboardApiVersion"
     implementation "com.android.support:support-fragment:$supportLibVersion"
     implementation "com.android.support:appcompat-v7:$supportLibVersion"
     implementation "com.android.support:recyclerview-v7:$supportLibVersion"
