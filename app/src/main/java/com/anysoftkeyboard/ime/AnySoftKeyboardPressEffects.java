@@ -123,8 +123,8 @@ public abstract class AnySoftKeyboardPressEffects extends AnySoftKeyboardClipboa
                 mVibrator.vibrate(vibrationDuration);
             } catch (Exception e) {
                 Logger.w(TAG, "Failed to interact with vibrator! Disabling for now.");
-                mVibrationDuration = 0;
-                mVibrationDurationForLongPress = 0;
+                //mVibrationDuration = 0;
+                //mVibrationDurationForLongPress = 0;
             }
         }
     }
