@@ -5,6 +5,7 @@ import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_IM;
 import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_NORMAL;
 import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_PASSWORD;
 import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_URL;
+import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_COPYPASTE;
 
 import android.content.res.Configuration;
 import android.view.inputmethod.EditorInfo;

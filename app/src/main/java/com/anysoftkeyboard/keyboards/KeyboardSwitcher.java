@@ -20,6 +20,7 @@ import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_EMAIL;
 import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_IM;
 import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_NORMAL;
 import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_URL;
+import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_COPYPASTE;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -127,7 +128,8 @@ public class KeyboardSwitcher {
             Keyboard.KEYBOARD_ROW_MODE_IM,
             Keyboard.KEYBOARD_ROW_MODE_URL,
             Keyboard.KEYBOARD_ROW_MODE_EMAIL,
-            Keyboard.KEYBOARD_ROW_MODE_PASSWORD
+            Keyboard.KEYBOARD_ROW_MODE_PASSWORD,
+            Keyboard.KEYBOARD_ROW_MODE_COPYPASTE
     };
 
     public KeyboardSwitcher(@NonNull KeyboardSwitchedListener ime, @NonNull Context context) {
@@ -187,6 +189,8 @@ public class KeyboardSwitcher {
                 .asObservable().subscribe(enabled -> mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_EMAIL] = enabled ? Keyboard.KEYBOARD_ROW_MODE_EMAIL : Keyboard.KEYBOARD_ROW_MODE_NORMAL));
         mDisposable.add(prefs.getBoolean(R.string.settings_key_support_keyboard_type_state_row_type_5, R.bool.settings_default_true)
                 .asObservable().subscribe(enabled -> mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_PASSWORD] = enabled ? Keyboard.KEYBOARD_ROW_MODE_PASSWORD : Keyboard.KEYBOARD_ROW_MODE_NORMAL));
+        mDisposable.add(prefs.getBoolean(R.string.settings_key_support_keyboard_type_state_row_type_6, R.bool.settings_default_true)
+                .asObservable().subscribe(enabled -> mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] = enabled ? Keyboard.KEYBOARD_ROW_MODE_COPYPASTE : Keyboard.KEYBOARD_ROW_MODE_NORMAL));
         mDisposable.add(prefs.getBoolean(R.string.settings_key_use_16_keys_symbols_keyboards, R.bool.settings_default_use_16_keys_symbols_keyboards)
                 .asObservable().subscribe(enabled -> mUse16KeysSymbolsKeyboards = enabled));
         mDisposable.add(prefs.getBoolean(R.string.settings_key_persistent_layout_per_package_id, R.bool.settings_default_persistent_layout_per_package_id)
@@ -244,7 +248,8 @@ public class KeyboardSwitcher {
                         keyboard = createGenericKeyboard(mDefaultAddOn, mContext, R.xml.symbols_16keys, R.xml.symbols, mContext.getString(R.string.symbols_keyboard), "symbols_keyboard",
                                 mKeyboardRowMode);
                     } else {
-                        keyboard = createGenericKeyboard(mDefaultAddOn, mContext, R.xml.symbols, R.xml.symbols, mContext.getString(R.string.symbols_keyboard), "symbols_keyboard", mKeyboardRowMode);
+                        keyboard = createGenericKeyboard(mDefaultAddOn, mContext, R.xml.symbols, R.xml.symbols, mContext.getString(R.string.symbols_keyboard), "symbols_keyboard",
+                                mKeyboardRowMode == Keyboard.KEYBOARD_ROW_MODE_NORMAL ? mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] : mKeyboardRowMode);
                     }
                     break;
                 case SYMBOLS_KEYBOARD_ALT_INDEX:
@@ -253,7 +258,7 @@ public class KeyboardSwitcher {
                                 "alt_symbols_keyboard", mKeyboardRowMode);
                     } else {
                         keyboard = createGenericKeyboard(mDefaultAddOn, mContext, R.xml.symbols_alt, R.xml.symbols_alt, mContext.getString(R.string.symbols_alt_keyboard), "alt_symbols_keyboard",
-                                mKeyboardRowMode);
+                                mKeyboardRowMode == Keyboard.KEYBOARD_ROW_MODE_NORMAL ? mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] : mKeyboardRowMode);
                     }
                     break;
                 case SYMBOLS_KEYBOARD_ALT_NUMBERS_INDEX:

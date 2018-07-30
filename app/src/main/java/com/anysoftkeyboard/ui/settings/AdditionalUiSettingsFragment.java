@@ -97,7 +97,8 @@ public class AdditionalUiSettingsFragment extends PreferenceFragmentCompat imple
                         sharedPreferences.getBoolean(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX + Keyboard.KEYBOARD_ROW_MODE_IM, true),
                         sharedPreferences.getBoolean(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX + Keyboard.KEYBOARD_ROW_MODE_URL, true),
                         sharedPreferences.getBoolean(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX + Keyboard.KEYBOARD_ROW_MODE_EMAIL, true),
-                        sharedPreferences.getBoolean(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX + Keyboard.KEYBOARD_ROW_MODE_PASSWORD, true)
+                        sharedPreferences.getBoolean(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX + Keyboard.KEYBOARD_ROW_MODE_PASSWORD, true),
+                        sharedPreferences.getBoolean(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX + Keyboard.KEYBOARD_ROW_MODE_COPYPASTE, true)
                 };
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(getContext());

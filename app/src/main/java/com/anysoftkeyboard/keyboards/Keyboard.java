@@ -55,10 +55,11 @@ public abstract class Keyboard {
     public static final int KEYBOARD_ROW_MODE_URL = 3;
     public static final int KEYBOARD_ROW_MODE_EMAIL = 4;
     public static final int KEYBOARD_ROW_MODE_PASSWORD = 5;
+    public static final int KEYBOARD_ROW_MODE_COPYPASTE = 6;
     private KeyboardDimens mKeyboardDimens;
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({KEYBOARD_ROW_MODE_NONE, KEYBOARD_ROW_MODE_NORMAL, KEYBOARD_ROW_MODE_IM, KEYBOARD_ROW_MODE_URL, KEYBOARD_ROW_MODE_EMAIL, KEYBOARD_ROW_MODE_PASSWORD})
+    @IntDef({KEYBOARD_ROW_MODE_NONE, KEYBOARD_ROW_MODE_NORMAL, KEYBOARD_ROW_MODE_IM, KEYBOARD_ROW_MODE_URL, KEYBOARD_ROW_MODE_EMAIL, KEYBOARD_ROW_MODE_PASSWORD, KEYBOARD_ROW_MODE_COPYPASTE})
     public @interface KeyboardRowModeId {
     }
 
@@ -73,6 +74,8 @@ public abstract class Keyboard {
                 return R.string.settings_key_support_keyboard_type_state_row_type_3;
             case KEYBOARD_ROW_MODE_PASSWORD:
                 return R.string.settings_key_support_keyboard_type_state_row_type_5;
+            case KEYBOARD_ROW_MODE_COPYPASTE:
+                return R.string.settings_key_support_keyboard_type_state_row_type_6;
             case KEYBOARD_ROW_MODE_NORMAL:
             case KEYBOARD_ROW_MODE_NONE:
             default:
@@ -682,7 +685,7 @@ public abstract class Keyboard {
         mLocalContext = askContext;
         mKeyboardContext = context;
         mLayoutResId = xmlLayoutResId;
-        if (modeId != KEYBOARD_ROW_MODE_NORMAL && modeId != KEYBOARD_ROW_MODE_EMAIL && modeId != KEYBOARD_ROW_MODE_URL && modeId != KEYBOARD_ROW_MODE_IM && modeId != KEYBOARD_ROW_MODE_PASSWORD) {
+        if (modeId != KEYBOARD_ROW_MODE_NORMAL && modeId != KEYBOARD_ROW_MODE_EMAIL && modeId != KEYBOARD_ROW_MODE_URL && modeId != KEYBOARD_ROW_MODE_IM && modeId != KEYBOARD_ROW_MODE_PASSWORD && modeId != KEYBOARD_ROW_MODE_COPYPASTE) {
             throw new IllegalArgumentException("modeId much be one of KeyboardRowModeId, not including KEYBOARD_ROW_MODE_NONE.");
         }
         mKeyboardMode = modeId;

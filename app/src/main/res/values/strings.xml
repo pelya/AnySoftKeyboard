@@ -140,6 +140,7 @@
     <string name="input_field_type_email">Email input field</string>
     <string name="input_field_type_url">URL input field</string>
     <string name="input_field_type_im">Messaging input field</string>
+    <string name="input_field_type_copypaste">Text selection keys in symbols keyboard</string>
 
     <string name="sound_on">Sound on key-press</string>
     <string name="sound_on_summary">Sound effects on soft keyboard press.</string>

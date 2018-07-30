@@ -114,5 +114,6 @@
         <item>@string/input_field_type_url</item>
         <item>@string/input_field_type_email</item>
         <item>@string/input_field_type_password</item>
+        <item>@string/input_field_type_copypaste</item>
     </string-array>
 </resources>
