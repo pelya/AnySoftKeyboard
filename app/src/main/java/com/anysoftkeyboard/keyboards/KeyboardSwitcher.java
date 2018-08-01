@@ -249,7 +249,7 @@ public class KeyboardSwitcher {
                                 mKeyboardRowMode);
                     } else {
                         keyboard = createGenericKeyboard(mDefaultAddOn, mContext, R.xml.symbols, R.xml.symbols, mContext.getString(R.string.symbols_keyboard), "symbols_keyboard",
-                                mKeyboardRowMode == Keyboard.KEYBOARD_ROW_MODE_NORMAL ? mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] : mKeyboardRowMode);
+                                mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] == Keyboard.KEYBOARD_ROW_MODE_COPYPASTE ? Keyboard.KEYBOARD_ROW_MODE_COPYPASTE : mKeyboardRowMode);
                     }
                     break;
                 case SYMBOLS_KEYBOARD_ALT_INDEX:
@@ -258,7 +258,7 @@ public class KeyboardSwitcher {
                                 "alt_symbols_keyboard", mKeyboardRowMode);
                     } else {
                         keyboard = createGenericKeyboard(mDefaultAddOn, mContext, R.xml.symbols_alt, R.xml.symbols_alt, mContext.getString(R.string.symbols_alt_keyboard), "alt_symbols_keyboard",
-                                mKeyboardRowMode == Keyboard.KEYBOARD_ROW_MODE_NORMAL ? mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] : mKeyboardRowMode);
+                                mRowModesMapping[Keyboard.KEYBOARD_ROW_MODE_COPYPASTE] == Keyboard.KEYBOARD_ROW_MODE_COPYPASTE ? Keyboard.KEYBOARD_ROW_MODE_COPYPASTE : mKeyboardRowMode);
                     }
                     break;
                 case SYMBOLS_KEYBOARD_ALT_NUMBERS_INDEX:
