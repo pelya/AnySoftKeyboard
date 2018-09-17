@@ -33,15 +33,14 @@
     </Row>
 
     <Row>
-        <Key android:codes="@integer/key_code_mode_symbols" android:keyEdgeFlags="left"/>
+        <Key android:codes="@integer/key_code_mode_symbols" android:keyEdgeFlags="left" android:keyWidth="15%p"/>
         <Key android:codes="96" android:keyLabel="`" android:popupCharacters="´"/>
-        <Key android:codes="176" android:keyLabel="°"/>
-        <Key android:codes="8226" android:keyLabel="•"/>
-        <Key android:codes="92" android:keyLabel="\\"/>
-        <Key android:codes="95" android:keyLabel="_"/>
+        <Key android:codes="+" android:keyLabel="+" android:popupCharacters="•°"/>
         <Key android:codes="60" android:keyLabel="&lt;" android:popupCharacters="&#8804;"/>
         <Key android:codes="62" android:keyLabel="&gt;" android:popupCharacters="&#8805;"/>
+        <Key android:codes="92" android:keyLabel="\\"/>
+        <Key android:codes="95" android:keyLabel="_"/>
         <Key android:codes="@integer/key_code_forward_delete" android:isRepeatable="true"/>
-        <Key android:codes="@integer/key_code_delete" android:keyEdgeFlags="right" android:isRepeatable="true"/>
+        <Key android:codes="@integer/key_code_delete" android:keyEdgeFlags="right" android:isRepeatable="true" android:keyWidth="15%p"/>
     </Row>
 </Keyboard>
