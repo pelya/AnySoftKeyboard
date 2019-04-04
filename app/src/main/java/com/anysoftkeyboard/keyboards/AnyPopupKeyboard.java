@@ -97,7 +97,9 @@ public class AnyPopupKeyboard extends AnyKeyboard {
             aKey.mShiftedCodes = new int[]{(int) upperCasePopupCharacter};
             aKey.x = (int) x;
             aKey.width = (int) (aKey.width - keyHorizontalGap);//the gap is on both sides
+            aKey.centerX = aKey.x + aKey.width / 2;
             aKey.y = (int) y;
+            aKey.centerY = aKey.y + aKey.height;
             final int xOffset = (int) (aKey.width + keyHorizontalGap + (keyHorizontalGap / 2));
             x += xOffset;
             rowWidth += xOffset;
@@ -166,7 +168,7 @@ public class AnyPopupKeyboard extends AnyKeyboard {
 
     @NonNull
     @Override
-    public CharSequence getKeyboardId() {
+    public String getKeyboardId() {
         return "keyboard_popup";
     }
 
@@ -186,25 +188,21 @@ public class AnyPopupKeyboard extends AnyKeyboard {
             int y, XmlResourceParser parser) {
         AnyKey key = (AnyKey) super.createKeyFromXml(resourceMapping, askContext, keyboardContext, parent, keyboardDimens, x, y, parser);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!TextUtils.isEmpty(key.text) && !EmojiUtils.isRenderable(mPaint, key.text)) {
-                key.disable();
-                key.width = 0;
-                key.text = "";
-                key.label = "";
-                key.mShiftedCodes = EMPTY_INT_ARRAY;
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !TextUtils.isEmpty(key.text) && !EmojiUtils.isRenderable(mPaint, key.text)) {
+            key.disable();
+            key.width = 0;
+            key.text = "";
+            key.label = "";
+            key.mShiftedCodes = EMPTY_INT_ARRAY;
         }
 
-        if (mDefaultSkinTone != null) {
-            if (key.popupResId != 0 && TextUtils.isEmpty(key.popupCharacters) && !TextUtils.isEmpty(key.text) && EmojiUtils.isLabelOfEmoji(key.text)) {
-                AnyPopupKeyboard popupKeyboard = new AnyPopupKeyboard(getKeyboardAddOn(), askContext, keyboardContext,
-                        key.popupResId, keyboardDimens, "temp", null);
-                Key skinToneKey = findKeyWithSkinTone(popupKeyboard.getKeys(), mDefaultSkinTone);
-                if (skinToneKey != null) {
-                    key.text = skinToneKey.text;
-                    key.label = skinToneKey.label;
-                }
+        if (mDefaultSkinTone != null && key.popupResId != 0 && TextUtils.isEmpty(key.popupCharacters) && !TextUtils.isEmpty(key.text) && EmojiUtils.isLabelOfEmoji(key.text)) {
+            AnyPopupKeyboard popupKeyboard = new AnyPopupKeyboard(getKeyboardAddOn(), askContext, keyboardContext,
+                    key.popupResId, keyboardDimens, "temp", null);
+            Key skinToneKey = findKeyWithSkinTone(popupKeyboard.getKeys(), mDefaultSkinTone);
+            if (skinToneKey != null) {
+                key.text = skinToneKey.text;
+                key.label = skinToneKey.label;
             }
         }
 
@@ -236,7 +234,7 @@ public class AnyPopupKeyboard extends AnyKeyboard {
          */
         final int keyboardWidth = getMinWidth();
         for (Key k : getKeys()) {
-            k.x = k.x * (-1);//phase 1
+            k.x = -1 * k.x;//phase 1
             k.x += keyboardWidth;//phase 2
             k.x -= k.width;//phase 3
         }

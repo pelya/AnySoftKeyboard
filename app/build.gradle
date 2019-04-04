@@ -3,55 +3,38 @@ group 'net.evendanan'
 buildscript {
     repositories {
         google()
-        maven { url 'https://maven.fabric.io/public' }
         maven { url 'https://jitpack.io' }
-        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url 'https://plugins.gradle.org/m2/' }
         mavenCentral()
     }
 
     dependencies {
-        classpath 'io.fabric.tools:gradle:1.25.1'
         classpath 'com.github.menny:GradleVersion:0.0.3'
     }
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'io.fabric'
 apply plugin: 'com.github.triplet.play'
 apply plugin: 'net.evendanan.versiongenerator'
 
 def generators = [
-        new net.evendanan.versiongenerator.generators.EnvBuildVersionGenerator.CircleCi(1650/*adding to version*/, /*decrementing due to minor*/ -2575),
-        new net.evendanan.versiongenerator.generators.GitBuildVersionGenerator(-2268, -2186),
+        new net.evendanan.versiongenerator.generators.EnvBuildVersionGenerator.CircleCi(
+                1650/*adding to version. Should not ever change*/,
+                -2575-2600 /*decrementing due to minor, every minor/major bump, this should be decremented*/),
         new net.evendanan.versiongenerator.generators.StaticVersionGenerator()
 ]
 
-def versionData = versionGenerator.generateVersion(1, 9, 0, generators)
+def versionData = versionGenerator.generateVersion(1, 10, 0, generators)
 
-repositories {
-    maven { url 'https://maven.fabric.io/public' }
-}
+apply from: "${rootDir}/gradle/android_general.gradle"
 
 android {
-    packagingOptions {
-        exclude 'LICENSE.txt'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/NOTICE'
-    }
-
-    compileSdkVersion sdkCompileVersion
-    buildToolsVersion androidBuildTools
-
     defaultConfig {
         applicationId 'com.menny.android.anysoftkeyboard'
         versionCode versionData.versionCode
         versionName versionData.versionName
 
         println "Building AnySoftKeyboard ${versionData.versionName} (or ${project.version}), code ${versionData.versionCode}."
-
-        minSdkVersion sdkMinimumVersion
-        targetSdkVersion sdkTargetVersion
 
         //adding additional fields to the BuildConfig class.
         String support_email_address = System.getenv("ANYSOFTKEYBOARD_CRASH_REPORT_EMAIL")
@@ -60,11 +43,6 @@ android {
         buildConfigField "String", "CRASH_REPORT_EMAIL_ADDRESS", '"' + support_email_address + '"'
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     signingConfigs {
@@ -91,53 +69,33 @@ android {
             minifyEnabled true
             proguardFiles 'proguard-android-optimize.txt', 'proguard-rules.txt'
 
-            ext.enableCrashlytics = false
-
             buildConfigField("boolean", "TESTING_BUILD", "false")
         }
 
         debug {
             testCoverageEnabled true
 
-            ext.enableCrashlytics = false
             buildConfigField("boolean", "TESTING_BUILD", "true")
         }
 
         canary {
-            signingConfig signingConfigs.release
-            zipAlignEnabled true
-            debuggable false
+            initWith buildTypes.release
 
-            minifyEnabled true
-            proguardFiles 'proguard-android-optimize.txt', 'proguard-rules.txt'
-
-            ext.enableCrashlytics = true
             buildConfigField("boolean", "TESTING_BUILD", "true")
 
             matchingFallbacks = ['release', 'debug']
         }
     }
-
-    lintOptions {
-        lintConfig file("${projectDir}/lint/lint.xml")
-    }
-
-    aaptOptions {
-        additionalParameters '--utf16'
-    }
 }
-
-apply from: "${rootDir}/gradle/android_unit_test.gradle"
 
 play {
     track = System.getProperty('deployChannel', 'alpha')
-    serviceAccountEmail = System.getenv('PUBLISH_APK_SERVICE_ACCOUNT_EMAIL')
-    pk12File = file('/tmp/apk_upload_key.p12')
-    uploadImages = false
+    serviceAccountEmail = System.getenv().getOrDefault('PUBLISH_APK_SERVICE_ACCOUNT_EMAIL', 'dummy@example.com')
+    serviceAccountCredentials = file('/tmp/apk_upload_key.p12')
 }
 
-//verifying whatsnew file
-File playStoreWhatsNewFile = file("${project.projectDir}/src/main/play/en-US/whatsnew")
+//verifying release-notes file
+File playStoreWhatsNewFile = file("${project.projectDir}/src/main/play/release-notes/en-US/${System.getProperty('deployChannel', 'alpha')}.txt")
 if (!playStoreWhatsNewFile.exists()) {
     throw new FileNotFoundException("Can not find whatsnew file for Play-Store upload!")
 }
@@ -145,10 +103,14 @@ if (!playStoreWhatsNewFile.exists()) {
 if (playStoreWhatsNewFile.text.length() > 500) {
     println("Locale " + Locale.getDefault())
     println("file encoding " + CharsetToolkit.defaultSystemCharset)
+    println("File contents:")
+    println("***" +  playStoreWhatsNewFile.text + "***")
     throw new IllegalStateException("whatsnew file can not be longer than 500 characters! Currently " + playStoreWhatsNewFile.text.length())
 }
 
 dependencies {
+    implementation project(path: ':external:api')
+    implementation project(path: ':external:packs')
     implementation project(':base')
     implementation project(':base-rx')
     implementation project(':nextword')
@@ -156,12 +118,13 @@ dependencies {
     implementation project(':jnidictionaryv1')
     implementation project(':jnidictionaryv2')
     implementation project(':prefs')
+    implementation project(':overlay')
     implementation project(':pixel')
 
-    implementation "com.github.pelya:AnySoftKeyboard-API:$AnySoftKeyboardApiVersion"
     implementation "com.android.support:support-fragment:$supportLibVersion"
     implementation "com.android.support:appcompat-v7:$supportLibVersion"
     implementation "com.android.support:recyclerview-v7:$supportLibVersion"
+    implementation "com.android.support:cardview-v7:$supportLibVersion"
     implementation "com.android.support:support-annotations:$supportLibVersion"
     implementation "com.android.support:palette-v7:$supportLibVersion"
     implementation "com.android.support:preference-v7:$supportLibVersion"
@@ -173,15 +136,5 @@ dependencies {
     }
 
     testImplementation project(path: ':base-test')
-
     testImplementation 'com.github.triplet.simpleprovider:simpleprovider:1.1.0'
-
-    canaryImplementation project(path: ':crashlytics')
-}
-
-crashlytics {
-    enableNdk true
-    androidNdkOut "${rootDir.absolutePath}/jnidictionaryv2/build/intermediates/ndkBuild/release/obj/local/"
-    androidNdkLibsOut "${rootDir.absolutePath}/app/build/intermediates/transforms/mergeJniLibs/canary/0/lib/"
-    manifestPath = "${projectDir.absolutePath}/build/intermediates/manifests/full/canary/AndroidManifest.xml"
 }

@@ -5,20 +5,19 @@ PUBLISH_CERT_FILE_URL=$2
 USERNAME=$3
 BUILD_TYPE=$4
 
-if [ "${BUILD_TYPE}" == "canary" ]; then
+if [[ "${BUILD_TYPE}" == "canary" ]]; then
     echo "Deploy build-type CANARY from master."
-    #adding INTERNET note to change-logs
-    echo '* INTERNET permission for BETA builds. Required for crash tracking.' | cat - app/src/main/play/en-US/whatsnew > temp && mv temp app/src/main/play/en-US/whatsnew
-    BUILD_TYPE="-DdeployChannel=alpha assembleCanary publishCanary crashlyticsUploadSymbols"
-elif [ "${BUILD_TYPE}" == "release" ]; then
+    BUILD_TYPE="-DdeployChannel=alpha assembleCanary publishCanary"
+elif [[ "${BUILD_TYPE}" == "release" ]]; then
     echo "Deploy build-type RELEASE from 'release-branch'."
+    cp app/src/main/play/release-notes/en-US/alpha.txt app/src/main/play/release-notes/en-US/beta.txt
     BUILD_TYPE="-DdeployChannel=beta assembleRelease publishRelease"
 else
     echo "Invalid build type. Can not deploy."
     exit 1
 fi
 
-if [ "${USERNAME}" == "AnySoftKeyboard" ]; then
+if [[ "${USERNAME}" == "AnySoftKeyboard" ]]; then
     echo "Repo owner is allowed for deploy."
 else
     echo "Invalid repo owner. Can not deploy."
@@ -27,12 +26,12 @@ fi
 
 # from this point, we fail with error when stuff missing, since we want to deploy.
 
-if [ -z "${KEYSTORE_FILE_URL}" ]; then
+if [[ -z "${KEYSTORE_FILE_URL}" ]]; then
     echo "Could not find secure env variable KEYSTORE_FILE_URL. Can not deploy."
     exit 1
 fi
 
-if [ -z "${PUBLISH_CERT_FILE_URL}" ]; then
+if [[ -z "${PUBLISH_CERT_FILE_URL}" ]]; then
     echo "Could not find secure env variable PUBLISH_CERT_FILE_URL. Can not deploy."
     exit 1
 fi

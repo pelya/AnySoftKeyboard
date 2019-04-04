@@ -13,10 +13,9 @@ import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.keyboards.Keyboard;
 import com.anysoftkeyboard.keyboards.views.AnyKeyboardViewBase;
 import com.anysoftkeyboard.prefs.AnimationsLevel;
+import com.anysoftkeyboard.rx.GenericOnError;
 import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.R;
-
-import junit.framework.Assert;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
@@ -68,18 +67,18 @@ public class KeyPreviewsManager implements KeyPreviewsController {
                     cancelAllPreviews();
                     mMaxPopupInstances = value ? context.getResources().getInteger(R.integer.maximum_instances_of_preview_popups) : 1;
                     mPositionCalculator = value ? new AboveKeyPositionCalculator() : new AboveKeyboardPositionCalculator();
-                }));
+                }, GenericOnError.onError("settings_key_key_press_preview_popup_position")));
 
         mDisposables.add(AnyApplication.prefs(context).getBoolean(R.string.settings_key_key_press_shows_preview_popup, R.bool.settings_default_key_press_shows_preview_popup)
                 .asObservable().subscribe(value -> {
                     cancelAllPreviews();
                     mShowPreview = value;
-                }));
+                }, GenericOnError.onError("settings_key_key_press_shows_preview_popup")));
 
         mDisposables.add(AnimationsLevel.createPrefsObservable(context).subscribe(value -> {
             cancelAllPreviews();
             mAnimationsEnabled = AnimationsLevel.None != value;
-        }));
+        }, GenericOnError.onError("AnimationsLevel.createPrefsObservable")));
     }
 
     @Override
@@ -141,7 +140,7 @@ public class KeyPreviewsManager implements KeyPreviewsController {
                             break;
                         }
                     }
-                    Assert.assertNotNull(oldKey);
+
                     mActivePopupByKeyMap.remove(oldKey);
                     mActivePopupByKeyMap.put(key, keyPreview);
                     mActiveKeyPreviews.add(keyPreview);
@@ -154,7 +153,7 @@ public class KeyPreviewsManager implements KeyPreviewsController {
     private boolean shouldNotShowPreview(Keyboard.Key key) {
         return key == null ||//no key, no preview
                 key.modifier ||//modifiers should not preview (that's just weird)
-                (!key.showPreview) ||//maybe the layout author doesn't want us to preview
+                !key.showPreview ||//maybe the layout author doesn't want us to preview
                 key.getCodesCount() == 0 ||//no key output, no preview
                 (key.getCodesCount() == 1 && isKeyCodeShouldNotBeShown(key.getPrimaryCode())) ||
                 mPreviewPopupTheme.getPreviewKeyTextSize() <= 0;
@@ -241,10 +240,6 @@ public class KeyPreviewsManager implements KeyPreviewsController {
             popup.dismiss();
         } catch (IllegalArgumentException e) {
             Logger.w(TAG, e, "Failed to dismiss popup, probably the view is gone already.");
-        } finally {
-            Assert.assertSame(popup, mActivePopupByKeyMap.remove(key));
-            Assert.assertTrue(mFreeKeyPreviews.add(popup));
-            Assert.assertTrue(mActiveKeyPreviews.remove(popup));
         }
     }
 }

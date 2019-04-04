@@ -1,18 +1,21 @@
 package com.anysoftkeyboard.ime;
 
-import android.support.annotation.CallSuper;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
-import android.view.View;
+import android.support.v4.content.ContextCompat;
 
-import com.anysoftkeyboard.powersave.PowerSaving;
+import com.anysoftkeyboard.android.PowerSaving;
+import com.anysoftkeyboard.overlay.OverlayData;
+import com.anysoftkeyboard.overlay.OverlyDataCreator;
 import com.anysoftkeyboard.rx.GenericOnError;
-import com.anysoftkeyboard.theme.KeyboardTheme;
-import com.anysoftkeyboard.theme.KeyboardThemeFactory;
+import com.menny.android.anysoftkeyboard.R;
 
-public abstract class AnySoftKeyboardPowerSaving extends AnySoftKeyboardRxPrefs {
+import java.util.List;
 
-    private KeyboardTheme mCurrentKeyboardTheme;
+public abstract class AnySoftKeyboardPowerSaving extends AnySoftKeyboardNightMode {
     private boolean mPowerState;
+    private ToggleOverlayCreator mToggleOverlayCreator;
 
     @Override
     public void onCreate() {
@@ -26,44 +29,30 @@ public abstract class AnySoftKeyboardPowerSaving extends AnySoftKeyboardRxPrefs 
                 GenericOnError.onError("Power-Saving icon")
         ));
 
-        addDisposable(KeyboardThemeFactory.observeCurrentTheme(getApplicationContext())
-                .subscribe(this::onKeyboardThemeChanged, GenericOnError.onError("Failed to observeCurrentTheme")));
+        addDisposable(PowerSaving.observePowerSavingState(getApplicationContext(), R.string.settings_key_power_save_mode_theme_control, R.bool.settings_default_true)
+                .subscribe(mToggleOverlayCreator::setToggle, GenericOnError.onError("Power-Saving theme")));
     }
 
     @NonNull
     @Override
-    protected String generateWatermark() {
-        return super.generateWatermark() + (mPowerState ? "\uD83D\uDD0B" : "");
-    }
-
-    @CallSuper
-    protected void onKeyboardThemeChanged(@NonNull KeyboardTheme theme) {
-        mCurrentKeyboardTheme = theme;
-
-        resetInputViews();
-    }
-
-    @Override
-    protected void resetInputViews() {
-        super.resetInputViews();
-        final InputViewBinder inputView = getInputView();
-        if (inputView != null) {
-            inputView.setKeyboardTheme(mCurrentKeyboardTheme);
-            setCandidatesTheme(mCurrentKeyboardTheme);
+    protected List<Drawable> generateWatermark() {
+        final List<Drawable> watermark = super.generateWatermark();
+        if (mPowerState) {
+            watermark.add(ContextCompat.getDrawable(this, R.drawable.ic_watermark_power_saving));
         }
+        return watermark;
     }
-
-    protected abstract void setCandidatesTheme(KeyboardTheme theme);
 
     @Override
-    public View onCreateInputView() {
-        final View view = super.onCreateInputView();
-        getInputView().setKeyboardTheme(mCurrentKeyboardTheme);
-        return view;
-    }
-
-    protected final KeyboardTheme getCurrentKeyboardTheme() {
-        return mCurrentKeyboardTheme;
+    protected OverlyDataCreator createOverlayDataCreator() {
+        return mToggleOverlayCreator = new ToggleOverlayCreator(super.createOverlayDataCreator(), this,
+                new OverlayData(
+                        Color.BLACK,
+                        Color.BLACK,
+                        Color.DKGRAY,
+                        Color.GRAY,
+                        Color.DKGRAY
+                ), "PowerSaving");
     }
 
 }

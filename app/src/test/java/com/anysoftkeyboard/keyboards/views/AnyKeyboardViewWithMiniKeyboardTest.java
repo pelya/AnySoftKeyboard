@@ -1,5 +1,18 @@
 package com.anysoftkeyboard.keyboards.views;
 
+import static com.anysoftkeyboard.keyboards.Keyboard.KEYBOARD_ROW_MODE_NORMAL;
+import static com.menny.android.anysoftkeyboard.R.xml.keyboard_with_keys_with_no_codes;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.same;
+
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
+
 import android.content.Context;
 import android.graphics.Point;
 import android.os.SystemClock;
@@ -20,14 +33,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.robolectric.RuntimeEnvironment;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.ArgumentMatchers.same;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest {
@@ -78,9 +83,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyAndNoPopupItemsShouldNotOutput() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -108,9 +113,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWithLabelWhenNoPrimaryKeyAndNoPopupItemsShouldNotOutput() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -138,9 +143,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyAndPopupCharactersShouldShowPopupWindow() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -168,9 +173,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyAndPopupCharactersShouldNotShowPopupWindowIfApiLevelIsBefore8() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application, 7), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext(), 7), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -196,9 +201,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyAndPopupLayoutShouldShowPopupWindow() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -224,9 +229,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyButTextWithoutPopupShouldOutputText() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -252,9 +257,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyButTextWithPopupShouldOutputText() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -280,9 +285,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testLongPressWhenNoPrimaryKeyButTextShouldOpenMiniKeyboard() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -308,9 +313,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testShortPressWhenNoPrimaryKeyAndNoPopupItemsButLongPressCodeShouldNotOutputLongPress() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 
@@ -325,7 +330,8 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
 
         ViewTestUtils.navigateFromTo(mViewUnderTest, key, key, 30, true, false);
 
-        Mockito.verifyZeroInteractions(mMockKeyboardListener);
+        Mockito.verify(mMockKeyboardListener).onGestureTypingInputStart(eq(key.centerX), eq(key.centerY), same(key), anyLong());
+        Mockito.verifyNoMoreInteractions(mMockKeyboardListener);
 
         Assert.assertNull(mViewUnderTest.getMiniKeyboard());
         Assert.assertFalse(mViewUnderTest.mMiniKeyboardPopup.isShowing());
@@ -339,9 +345,9 @@ public class AnyKeyboardViewWithMiniKeyboardTest extends AnyKeyboardViewBaseTest
     @Test
     public void testLongPressWhenNoPrimaryKeyAndNoPopupItemsButLongPressCodeShouldOutputLongPress() throws Exception {
         ExternalAnyKeyboard anyKeyboard = new ExternalAnyKeyboard(
-                new DefaultAddOn(RuntimeEnvironment.application, RuntimeEnvironment.application), RuntimeEnvironment.application,
-                RuntimeEnvironment.application, R.xml.keyboard_with_keys_with_no_codes, R.xml.keyboard_with_keys_with_no_codes, "test", 0, 0,
-                "en", "", "", Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+                new DefaultAddOn(getApplicationContext(), getApplicationContext()), getApplicationContext(),
+                getApplicationContext(), keyboard_with_keys_with_no_codes, keyboard_with_keys_with_no_codes, "test", 0, 0,
+                "en", "", "", KEYBOARD_ROW_MODE_NORMAL);
         anyKeyboard.loadKeyboard(mViewUnderTest.mKeyboardDimens);
         mViewUnderTest.setKeyboard(anyKeyboard, 0);
 

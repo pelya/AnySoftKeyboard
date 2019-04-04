@@ -1,0 +1,3 @@
+* Updated translations.
+
+More here: https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/90

@@ -13,11 +13,24 @@ public class VersionChangeLogs {
     static List<VersionChangeLog> createChangeLog() {
         final List<VersionChangeLog> log = new ArrayList<>();
 
+        log.add(new VersionChangeLog(1, 10, "r1", Uri.parse("https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/89"),
+                "Keyboard colors will adapt to used app. Enable this in Themes settings.",
+                "Night Mode - if enabled, keyboard and app will use dark theme.",
+                "Power Saving mode tweaks.",
+                "Updated build-tools (smaller binary now).",
+                "Halmak layout for English.",
+                "Updated localization: AR, BE, BG, DE, EO, EU, ES, ES-MX, FR, IT, IW (HE), KMR, KU, NB, PT, SC, SK, TR."));
+
+        log.add(new VersionChangeLog(1, 9, "r6", Uri.parse("https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/88"),
+                "➿ Gesture-Typing is here! As BETA. You'll need to enable it in Settings if you want to try it out.",
+                "Honoring IME_FLAG_NO_PERSONALIZED_LEARNING and PASSWORD as Incognito - if an app ask us not to remember stuff, we'll do it.",
+                "Updated localization: BE, CKB, EU, FR, IT, NB, SC."));
+
         log.add(new VersionChangeLog(1, 9, "r5", Uri.parse("https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/87"),
                 "Power-Saving mode improvements - you can pick which features to include in Power-Saving.",
                 "Also, we allow switching to dark, simple theme in Power-Saving mode. But this is optional.",
-                "New Workman layout, new Terminal generic-top-row and some long-press fixes. Done by Alex Griffin.",
-                "Updated localization: AR, BE, EU, FR, HU, IT, KA, KU, LT, NB, NL, PT, RO, SC."));
+                "New Workman layout, Terminal generic-top-row and long-press fixes. Done by Alex Griffin.",
+                "Updated localization: AR, BE, EU, FR, HU, IT, KA, KN, KU, LT, NB, NL, PT, RO, RU, SC, UK."));
 
         log.add(new VersionChangeLog(1, 9, "r4", Uri.parse("https://github.com/AnySoftKeyboard/AnySoftKeyboard/milestone/86"),
                 "Power-Saving mode - when battery is low, we will not do animations or dictionary look ups.",

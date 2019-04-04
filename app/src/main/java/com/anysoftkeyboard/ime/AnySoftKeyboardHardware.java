@@ -12,7 +12,6 @@ import com.anysoftkeyboard.keyboards.KeyboardSwitcher;
 import com.anysoftkeyboard.keyboards.physical.HardKeyboardActionImpl;
 import com.anysoftkeyboard.keyboards.physical.MyMetaKeyKeyListener;
 import com.anysoftkeyboard.rx.GenericOnError;
-import com.anysoftkeyboard.utils.Workarounds;
 import com.menny.android.anysoftkeyboard.R;
 
 public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffects {
@@ -23,6 +22,8 @@ public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffect
 
     private boolean mUseVolumeKeyForLeftRight;
     private boolean mUseKeyRepeat;
+    private boolean mSwitchLanguageOnAltSpace;
+    private boolean mSwitchLanguageOnShiftSpace;
     protected boolean mUseBackWord;
 
     @Override
@@ -32,6 +33,10 @@ public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffect
                 .asObservable().subscribe(aBoolean -> mUseVolumeKeyForLeftRight = aBoolean, GenericOnError.onError("settings_key_use_volume_key_for_left_right")));
         addDisposable(prefs().getBoolean(R.string.settings_key_use_key_repeat, R.bool.settings_default_use_key_repeat)
                 .asObservable().subscribe(aBoolean -> mUseKeyRepeat = aBoolean, GenericOnError.onError("settings_key_use_key_repeat")));
+        addDisposable(prefs().getBoolean(R.string.settings_key_enable_alt_space_language_shortcut, R.bool.settings_default_enable_alt_space_language_shortcut)
+                .asObservable().subscribe(aBoolean -> mSwitchLanguageOnAltSpace = aBoolean, GenericOnError.onError("settings_key_enable_alt_space_language_shortcut")));
+        addDisposable(prefs().getBoolean(R.string.settings_key_enable_shift_space_language_shortcut, R.bool.settings_default_enable_shift_space_language_shortcut)
+                .asObservable().subscribe(aBoolean -> mSwitchLanguageOnShiftSpace = aBoolean, GenericOnError.onError("settings_key_enable_shift_space_language_shortcut")));
         addDisposable(prefs().getBoolean(R.string.settings_key_use_backword, R.bool.settings_default_use_backword)
                 .asObservable().subscribe(aBoolean -> mUseBackWord = aBoolean, GenericOnError.onError("settings_key_use_backword")));
     }
@@ -58,14 +63,14 @@ public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffect
         //in case the user has used physical keyboard with this input-field,
         //we will not show the keyboard view (until completely finishing, or switching input fields)
         final boolean previouslyPhysicalKeyboardInput;
-        if ((!configChange) && editorInfo != null && editorInfo.fieldId == mLastEditorIdPhysicalKeyboardWasUsed && editorInfo.fieldId != 0) {
+        if (!configChange && editorInfo != null && editorInfo.fieldId == mLastEditorIdPhysicalKeyboardWasUsed && editorInfo.fieldId != 0) {
             Logger.d(TAG, "Already used physical keyboard on this input-field. Will not show keyboard view.");
             previouslyPhysicalKeyboardInput = true;
         } else {
             previouslyPhysicalKeyboardInput = false;
             mLastEditorIdPhysicalKeyboardWasUsed = 0;
         }
-        return (!previouslyPhysicalKeyboardInput) && super.onShowInputRequested(flags, configChange);
+        return !previouslyPhysicalKeyboardInput && super.onShowInputRequested(flags, configChange);
     }
 
     @Override
@@ -102,16 +107,14 @@ public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffect
              * END of SPECIAL translated HW keys code section
              */
             case KeyEvent.KEYCODE_BACK:
-                if (event.getRepeatCount() == 0 && getInputView() != null) {
-                    if (handleCloseRequest()) {
-                        // consuming the meta keys
-                        if (ic != null) {
-                            // translated, so we also take care of the meta-state-keys
-                            ic.clearMetaKeyStates(Integer.MAX_VALUE);
-                        }
-                        mMetaState = 0;
-                        return true;
+                if (event.getRepeatCount() == 0 && getInputView() != null && handleCloseRequest()) {
+                    // consuming the meta keys
+                    if (ic != null) {
+                        // translated, so we also take care of the meta-state-keys
+                        ic.clearMetaKeyStates(Integer.MAX_VALUE);
                     }
+                    mMetaState = 0;
+                    return true;
                 }
                 break;
             case 0x000000cc:// API 14: KeyEvent.KEYCODE_LANGUAGE_SWITCH
@@ -119,23 +122,14 @@ public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffect
                 return true;
             case KeyEvent.KEYCODE_SHIFT_LEFT:
             case KeyEvent.KEYCODE_SHIFT_RIGHT:
-                if (event.isAltPressed()
-                        && Workarounds.isAltSpaceLangSwitchNotPossible()) {
-                    switchToNextPhysicalKeyboard(ic);
-                    return true;
-                }
-                // NOTE: letting it fall-through to the other meta-keys
-                // The line below will disable the checkstyle error.
-                // fallthru
             case KeyEvent.KEYCODE_ALT_LEFT:
             case KeyEvent.KEYCODE_ALT_RIGHT:
             case KeyEvent.KEYCODE_SYM:
                 mMetaState = MyMetaKeyKeyListener.handleKeyDown(mMetaState, keyEventKeyCode, event);
                 break;
             case KeyEvent.KEYCODE_SPACE:
-                if ((event.isAltPressed() && !Workarounds
-                        .isAltSpaceLangSwitchNotPossible())
-                        || event.isShiftPressed()) {
+                if ((event.isAltPressed() && mSwitchLanguageOnAltSpace)
+                        || (event.isShiftPressed() && mSwitchLanguageOnShiftSpace)) {
                     switchToNextPhysicalKeyboard(ic);
                     return true;
                 }
@@ -289,10 +283,8 @@ public abstract class AnySoftKeyboardHardware extends AnySoftKeyboardPressEffect
     private void switchToNextPhysicalKeyboard(InputConnection ic) {
         // consuming the meta keys
         if (ic != null) {
-            ic.clearMetaKeyStates(Integer.MAX_VALUE);// translated, so
-            // we also take
-            // care of the
-            // metakeys.
+            // translated, so we also take care of the meta-keys.
+            ic.clearMetaKeyStates(Integer.MAX_VALUE);
         }
         mMetaState = 0;
         // only physical keyboard

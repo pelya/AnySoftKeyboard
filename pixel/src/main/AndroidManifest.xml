@@ -1,2 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="net.evendanan.pixel" />
+<manifest package="net.evendanan.pixel"
+          xmlns:tools="http://schemas.android.com/tools">
+    <uses-sdk tools:overrideLibrary="androidx.test,androidx.test.core" />
+</manifest>

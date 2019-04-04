@@ -1,19 +1,23 @@
 package com.anysoftkeyboard;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
-import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.view.inputmethod.InputMethodSubtype;
 
 import com.anysoftkeyboard.addons.AddOn;
+import com.anysoftkeyboard.dictionaries.Dictionary;
+import com.anysoftkeyboard.dictionaries.DictionaryBackgroundLoader;
 import com.anysoftkeyboard.dictionaries.Suggest;
 import com.anysoftkeyboard.dictionaries.WordComposer;
-import com.anysoftkeyboard.gesturetyping.GestureTypingDetector;
-import com.anysoftkeyboard.gesturetyping.GestureTypingDetectorTest;
 import com.anysoftkeyboard.ime.InputViewBinder;
 import com.anysoftkeyboard.keyboards.AnyKeyboard;
 import com.anysoftkeyboard.keyboards.GenericKeyboard;
@@ -23,17 +27,17 @@ import com.anysoftkeyboard.keyboards.KeyboardSwitcher;
 import com.anysoftkeyboard.keyboards.views.AnyKeyboardView;
 import com.anysoftkeyboard.keyboards.views.CandidateView;
 import com.anysoftkeyboard.keyboards.views.KeyboardViewContainerView;
+import com.anysoftkeyboard.overlay.OverlayData;
+import com.anysoftkeyboard.overlay.OverlyDataCreator;
 import com.anysoftkeyboard.quicktextkeys.QuickKeyHistoryRecords;
 import com.anysoftkeyboard.quicktextkeys.TagsExtractor;
-import com.anysoftkeyboard.theme.KeyboardTheme;
 import com.menny.android.anysoftkeyboard.R;
 import com.menny.android.anysoftkeyboard.SoftKeyboard;
 
 import org.junit.Assert;
+import org.mockito.MockingDetails;
 import org.mockito.Mockito;
 import org.robolectric.Robolectric;
-import org.robolectric.RuntimeEnvironment;
-import org.robolectric.shadows.ShadowSystemClock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +45,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import androidx.test.core.app.ApplicationProvider;
 
 public class TestableAnySoftKeyboard extends SoftKeyboard {
     private Suggest mSpiedSuggest;
@@ -56,12 +62,17 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
     private AbstractInputMethodImpl mCreatedInputMethodInterface;
     private AbstractInputMethodSessionImpl mCreatedInputMethodSession;
 
+    private OverlyDataCreator mOriginalOverlayDataCreator;
+    private OverlyDataCreator mSpiedOverlayCreator;
+    private PackageManager mSpiedPackageManager;
+
     public static EditorInfo createEditorInfoTextWithSuggestions() {
         return createEditorInfo(EditorInfo.IME_ACTION_NONE, EditorInfo.TYPE_CLASS_TEXT);
     }
 
     public static EditorInfo createEditorInfo(final int imeOptions, final int inputType) {
         EditorInfo editorInfo = new EditorInfo();
+        editorInfo.packageName = "com.menny.android.anysoftkeyboard";
         editorInfo.imeOptions = imeOptions;
         editorInfo.inputType = inputType;
 
@@ -70,9 +81,45 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
 
     @Override
     public void onCreate() {
+        mSpiedPackageManager = Mockito.spy(super.getPackageManager());
         super.onCreate();
         mSpiedInputMethodManager = Mockito.spy(super.getInputMethodManager());
         mInputConnection = Mockito.spy(new TestInputConnection(this));
+    }
+
+    @Override
+    protected OverlyDataCreator createOverlayDataCreator() {
+        mOriginalOverlayDataCreator = super.createOverlayDataCreator();
+        Assert.assertNotNull(mOriginalOverlayDataCreator);
+
+        mSpiedOverlayCreator = Mockito.spy(new OverlayCreatorForSpy(mOriginalOverlayDataCreator));
+
+        return mSpiedOverlayCreator;
+    }
+
+    //Needs this since we want to use Mockito.spy, which gets the class at runtime
+    //and creates a stub for it, which will create an additional real instance
+    //of super.createOverlayDataCreator(), and confuses everyone.
+    private static class OverlayCreatorForSpy implements OverlyDataCreator {
+
+        private final OverlyDataCreator mOriginalOverlayDataCreator;
+
+        public OverlayCreatorForSpy(OverlyDataCreator originalOverlayDataCreator) {
+            mOriginalOverlayDataCreator = originalOverlayDataCreator;
+        }
+
+        @Override
+        public OverlayData createOverlayData(ComponentName remoteApp) {
+            return mOriginalOverlayDataCreator.createOverlayData(remoteApp);
+        }
+    }
+
+    public OverlyDataCreator getMockOverlayDataCreator() {
+        return mSpiedOverlayCreator;
+    }
+
+    public OverlyDataCreator getOriginalOverlayDataCreator() {
+        return mOriginalOverlayDataCreator;
     }
 
     @Override
@@ -86,7 +133,7 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
     }
 
     @Override
-    protected InputMethodManager getInputMethodManager() {
+    public InputMethodManager getInputMethodManager() {
         return mSpiedInputMethodManager;
     }
 
@@ -112,16 +159,8 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
     //MAGIC: now it is visible for tests
     @VisibleForTesting
     @Override
-    public void onKeyboardThemeChanged(@NonNull KeyboardTheme theme) {
-        super.onKeyboardThemeChanged(theme);
-    }
-
-    @NonNull
-    @Override
-    protected GestureTypingDetector createGestureTypingDetector() {
-        return new GestureTypingDetectorTest.TestableGestureTypingDetector(Arrays.asList(
-                "hello", "welcome", "is", "you", "good", "bye", "one", "two", "three"
-        ));
+    public void setIncognito(boolean enable, boolean byUser) {
+        super.setIncognito(enable, byUser);
     }
 
     public TestableKeyboardSwitcher getKeyboardSwitcherForTests() {
@@ -134,17 +173,16 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         super.onStartInput(attribute, restarting);
     }
 
-    @Override
-    public View onCreateCandidatesView() {
-        View spiedRootView = Mockito.spy(super.onCreateCandidatesView());
-        mMockCandidateView = Mockito.mock(CandidateView.class);
-        resetMockCandidateView();
-        Mockito.doReturn(mMockCandidateView).when(spiedRootView).findViewById(R.id.candidates);
-        return spiedRootView;
-    }
-
     public void resetMockCandidateView() {
         Mockito.reset(mMockCandidateView);
+
+        setupMockCandidateView();
+    }
+
+    private void setupMockCandidateView() {
+        ViewGroup.LayoutParams lp = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        Mockito.doReturn(lp).when(mMockCandidateView).getLayoutParams();
+        Mockito.doReturn(R.id.candidate_view).when(mMockCandidateView).getId();
         Mockito.doAnswer(invocation -> {
             boolean previousState = mCandidateShowsHint;
             mCandidateShowsHint = false;
@@ -158,7 +196,16 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
             mCandidateShowsHint = false;
             return null;
         }).when(mMockCandidateView).notifyAboutWordAdded(Mockito.any(CharSequence.class));
+    }
 
+    @Override
+    public boolean isPredictionOn() {
+        return super.isPredictionOn();
+    }
+
+    @Override
+    public boolean isAutoCorrect() {
+        return super.isAutoCorrect();
     }
 
     @Override
@@ -174,13 +221,21 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
 
     @Override
     protected KeyboardViewContainerView createInputViewContainer() {
-        KeyboardViewContainerView containerView = super.createInputViewContainer();
-        AnyKeyboardView inputView = (AnyKeyboardView) containerView.getChildAt(0);
-        containerView.removeView(inputView);
+        final KeyboardViewContainerView originalInputContainer = super.createInputViewContainer();
+        AnyKeyboardView inputView = (AnyKeyboardView) originalInputContainer.getChildAt(1);
+        originalInputContainer.removeAllViews();
+        mMockCandidateView = Mockito.mock(CandidateView.class);
+        setupMockCandidateView();
         mSpiedKeyboardView = Mockito.spy(inputView);
-        containerView.addView(mSpiedKeyboardView);
+        originalInputContainer.addView(mMockCandidateView);
+        originalInputContainer.addView(mSpiedKeyboardView);
 
-        return containerView;
+        return originalInputContainer;
+    }
+
+    @Override
+    public PackageManager getPackageManager() {
+        return mSpiedPackageManager;
     }
 
     @Override
@@ -233,7 +288,7 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         } else {
             onText(null, text);
             Robolectric.flushForegroundThreadScheduler();
-            if (advanceTime) ShadowSystemClock.sleep(25);
+            if (advanceTime) SystemClock.sleep(25);
         }
     }
 
@@ -258,15 +313,17 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         final AnyKeyboard keyboard = getCurrentKeyboard();
         Assert.assertNotNull(keyboard);
         if (key instanceof AnyKeyboard.AnyKey/*this will ensure this instance is not a mock*/) {
-            final int keyCodeWithShiftState = key.getCodeAtIndex(0, mSpiedKeyboardView.getKeyDetector().isKeyShifted(key));
+            final int keyCodeWithShiftState = key.getCodeAtIndex(0, mSpiedKeyboardView != null && mSpiedKeyboardView.getKeyDetector().isKeyShifted(key));
             int[] nearByKeyCodes = new int[64];
-            mSpiedKeyboardView.getKeyDetector().getKeyIndexAndNearbyCodes(key.x + 5, key.y + 5, nearByKeyCodes);
+            if (mSpiedKeyboardView != null) {
+                mSpiedKeyboardView.getKeyDetector().getKeyIndexAndNearbyCodes(key.x + 5, key.y + 5, nearByKeyCodes);
+            }
             onKey(keyCodeWithShiftState, key, 0, nearByKeyCodes, true);
         } else {
             onKey(primaryCode, null, 0, new int[0], true);
         }
         Robolectric.flushForegroundThreadScheduler();
-        if (advanceTime) ShadowSystemClock.sleep(25);
+        if (advanceTime) SystemClock.sleep(25);
         onRelease(primaryCode);
         Robolectric.flushForegroundThreadScheduler();
     }
@@ -332,6 +389,56 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         return mInputConnection;
     }
 
+    @NonNull
+    @Override
+    protected DictionaryBackgroundLoader.Listener getDictionaryLoadedListener(@NonNull AnyKeyboard currentAlphabetKeyboard) {
+        final DictionaryBackgroundLoader.Listener dictionaryLoadedListener = super.getDictionaryLoadedListener(currentAlphabetKeyboard);
+        if (dictionaryLoadedListener instanceof WordListDictionaryListener) {
+            return new DictionaryBackgroundLoader.Listener() {
+
+                @Override
+                public void onDictionaryLoadingStarted(Dictionary dictionary) {
+                    dictionaryLoadedListener.onDictionaryLoadingStarted(dictionary);
+                }
+
+                @Override
+                public void onDictionaryLoadingDone(Dictionary dictionary) {
+                    final MockingDetails mockingDetails = Mockito.mockingDetails(dictionary);
+                    if (!mockingDetails.isMock() && !mockingDetails.isSpy()) {
+                        dictionary = Mockito.spy(dictionary);
+                        Mockito.doReturn(new char[][]{
+                                "hello".toCharArray(),
+                                "welcome".toCharArray(),
+                                "is".toCharArray(),
+                                "you".toCharArray(),
+                                "good".toCharArray(),
+                                "bye".toCharArray(),
+                                "one".toCharArray(),
+                                "two".toCharArray(),
+                                "three".toCharArray()
+                        }).when(dictionary).getWords();
+                    }
+                    dictionaryLoadedListener.onDictionaryLoadingDone(dictionary);
+                }
+
+                @Override
+                public void onDictionaryLoadingFailed(Dictionary dictionary, Throwable exception) {
+                    if (exception instanceof Resources.NotFoundException && exception.getMessage().contains("resource ID #0x0")) {
+                        //Due to a bug in Robolectric, typed-array is returning empty
+                        onDictionaryLoadingDone(dictionary);
+                    } else {
+                        final Dictionary spy = Mockito.spy(dictionary);
+                        Mockito.doReturn(new char[0][0]).when(spy).getWords();
+                        dictionaryLoadedListener.onDictionaryLoadingFailed(spy, exception);
+                    }
+
+                }
+            };
+        } else {
+            return dictionaryLoadedListener;
+        }
+    }
+
     public static class TestableSuggest extends Suggest {
 
         private final Map<String, List<CharSequence>> mDefinedWords = new HashMap<>();
@@ -388,7 +495,7 @@ public class TestableAnySoftKeyboard extends SoftKeyboard {
         private int mInputModeId;
 
         public TestableKeyboardSwitcher(@NonNull AnySoftKeyboard ime) {
-            super(ime, RuntimeEnvironment.application);
+            super(ime, ApplicationProvider.getApplicationContext());
         }
 
         @Override

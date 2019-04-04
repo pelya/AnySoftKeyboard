@@ -9,13 +9,30 @@
 
     <string name="settings_key_vibrate_on_key_press_duration">vibrate_on_key_press_duration</string>
 
+    <string name="settings_key_night_mode">settings_key_night_mode</string>
+    <string name="settings_key_night_mode_sound_control">settings_key_night_mode_sound_control</string>
+    <string name="settings_key_night_mode_vibration_control">settings_key_night_mode_vibration_control</string>
+    <string name="settings_key_night_mode_theme_control">settings_key_night_mode_theme_control</string>
+    <string name="settings_key_night_mode_app_theme_control">settings_key_night_mode_app_theme_control</string>
+    <string-array name="night_mode_types">
+        <item>@string/night_mode_type_never</item>
+        <item>@string/night_mode_type_follow_system</item>
+        <item>@string/night_mode_type_always</item>
+    </string-array>
+
     <string name="settings_key_power_save_mode">settings_key_power_save_mode</string>
 
     <string name="settings_key_power_save_mode_animation_control">settings_key_power_save_mode_animation_control</string>
     <string name="settings_key_power_save_mode_sound_control">settings_key_power_save_mode_sound_control</string>
     <string name="settings_key_power_save_mode_vibration_control">settings_key_power_save_mode_vibration_control</string>
+    <string name="settings_key_power_save_mode_gesture_control">settings_key_power_save_mode_gesture_control</string>
     <string name="settings_key_power_save_mode_suggestions_control">settings_key_power_save_mode_suggestions_control</string>
     <string name="settings_key_power_save_mode_theme_control">settings_key_power_save_mode_theme_control</string>
+    <string-array name="power_save_mode_types">
+        <item>@string/power_save_mode_types_never</item>
+        <item>@string/power_save_mode_types_lower_battery</item>
+        <item>@string/power_save_mode_types_always</item>
+    </string-array>
 
     <string name="settings_key_use_custom_sound_volume">use_custom_sound_volume</string>
     <string name="settings_key_custom_sound_volume">custom_sound_volume</string>
@@ -39,10 +56,6 @@
     <string name="settings_key_custom_hint_valign_key">settings_key_custom_hint_valign_key</string>
 
     <string name="settings_key_tweak_animations_level">settings_key_tweak_animations_level</string>
-
-    <string name="settings_key_clipboard_tip_for_long_press">PREF_KEY_TIMES_SHOWED_LONG_PRESS_TIP</string>
-
-    <string name="settings_key_clipboard_tip_for_fine_select">PREF_KEY_TIMES_SHOWED_FINE_SELECT_TIP</string>
 
     <string name="settings_key_quick_text_history">HistoryQuickTextKey_encoded_history_key</string>
 
@@ -105,6 +118,8 @@
     <string name="settings_key_use_contacts_dictionary">settings_key_use_contacts_dictionary</string>
 
     <string name="settings_key_hide_soft_when_physical">settings_key_hide_soft_when_physical</string>
+    <string name="settings_key_enable_alt_space_language_shortcut">settings_key_enable_alt_space_language_shortcut</string>
+    <string name="settings_key_enable_shift_space_language_shortcut">settings_key_enable_shift_space_language_shortcut</string>
 
     <string name="settings_key_always_use_fallback_user_dictionary">settings_key_always_use_fallback_user_dictionary</string>
 
@@ -352,5 +367,7 @@
     <string name="settings_key_support_keyboard_type_state_row_type_3">settings_key_support_keyboard_type_state_row_type_3</string>
     <string name="settings_key_support_keyboard_type_state_row_type_4">settings_key_support_keyboard_type_state_row_type_4</string>
     <string name="settings_key_support_keyboard_type_state_row_type_5">settings_key_support_keyboard_type_state_row_type_5</string>
-    <string name="settings_key_support_keyboard_type_state_row_type_6">settings_key_support_keyboard_type_state_row_type_6</string>
+
+    <string name="settings_key_allow_layouts_to_provide_generic_rows">settings_key_allow_layouts_to_provide_generic_rows</string>
+    <string name="settings_key_apply_remote_app_colors">settings_key_apply_remote_app_colors</string>
 </resources>

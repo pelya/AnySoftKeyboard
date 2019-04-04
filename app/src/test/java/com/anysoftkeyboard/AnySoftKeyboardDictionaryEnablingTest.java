@@ -1,5 +1,7 @@
 package com.anysoftkeyboard;
 
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
+
 import android.view.inputmethod.EditorInfo;
 
 import com.anysoftkeyboard.dictionaries.ExternalDictionaryFactory;
@@ -13,8 +15,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.robolectric.RuntimeEnvironment;
-import org.robolectric.shadows.ShadowSystemClock;
+
+import static android.os.SystemClock.sleep;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTest {
@@ -25,7 +27,7 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
 
     @Before
     public void setUp() throws Exception {
-        UserDictionary userDictionary = new UserDictionary(RuntimeEnvironment.application, "en");
+        UserDictionary userDictionary = new UserDictionary(getApplicationContext(), "en");
         userDictionary.loadDictionary();
         for (int wordIndex = 0; wordIndex < DICTIONATY_WORDS.length; wordIndex++) {
             userDictionary.addWord(DICTIONATY_WORDS[wordIndex], DICTIONATY_WORDS.length - wordIndex);
@@ -42,13 +44,13 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
         final EditorInfo editorInfo = TestableAnySoftKeyboard.createEditorInfoTextWithSuggestions();
         mAnySoftKeyboardUnderTest.onStartInput(editorInfo, false);
 
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
 
         mAnySoftKeyboardUnderTest.onCreateInputView();
         mAnySoftKeyboardUnderTest.onStartInputView(editorInfo, false);
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Assert.assertTrue(mAnySoftKeyboardUnderTest.isPredictionOn());
         Assert.assertTrue(mAnySoftKeyboardUnderTest.isAutoCorrect());
     }
@@ -75,7 +77,7 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
 
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Assert.assertFalse(mAnySoftKeyboardUnderTest.isPredictionOn());
         Assert.assertFalse(mAnySoftKeyboardUnderTest.isAutoCorrect());
     }
@@ -210,7 +212,7 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
 
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Assert.assertTrue(mAnySoftKeyboardUnderTest.isPredictionOn());
     }
 
@@ -219,7 +221,7 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
         //setting the dictionary
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
 
         Mockito.reset(mAnySoftKeyboardUnderTest.getSpiedSuggest());
 
@@ -227,14 +229,14 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
 
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).closeDictionaries();
         //waiting a bit
-        ShadowSystemClock.sleep(10);
+        sleep(10);
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).closeDictionaries();
         //restarting the input
         simulateOnStartInputFlow();
 
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).closeDictionaries();
     }
 
@@ -243,20 +245,20 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
         //setting the dictionary
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
 
         Mockito.reset(mAnySoftKeyboardUnderTest.getSpiedSuggest());
 
         simulateFinishInputFlow();
         //waiting a long time
-        ShadowSystemClock.sleep(1000);
+        sleep(1000);
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).closeDictionaries();
         Mockito.reset(mAnySoftKeyboardUnderTest.getSpiedSuggest());
         //restarting the input
         simulateOnStartInputFlow();
         mAnySoftKeyboardUnderTest.simulateKeyPress('h');
 
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
     }
 
     @Test
@@ -275,7 +277,7 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
 
         AnyKeyboard currentKeyboard = mAnySoftKeyboardUnderTest.getCurrentKeyboardForTests();
         SharedPrefsHelper.setPrefsValue(ExternalDictionaryFactory.getDictionaryOverrideKey(currentKeyboard), "dictionary_sdfsdfsd");
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest()).resetNextWordSentence();
     }
 
@@ -286,16 +288,16 @@ public class AnySoftKeyboardDictionaryEnablingTest extends AnySoftKeyboardBaseTe
         Mockito.reset(mAnySoftKeyboardUnderTest.getSpiedSuggest());
 
         SharedPrefsHelper.setPrefsValue("bsbsbsbs", "dictionary_sdfsdfsd");
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).resetNextWordSentence();
 
         AnyKeyboard currentKeyboard = mAnySoftKeyboardUnderTest.getCurrentKeyboardForTests();
         SharedPrefsHelper.setPrefsValue(/*no prefix*/currentKeyboard.getKeyboardId() + "_override_dictionary", "dictionary_sdfsdfsd");
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).resetNextWordSentence();
 
         SharedPrefsHelper.setPrefsValue(KeyboardFactory.PREF_ID_PREFIX + currentKeyboard.getKeyboardId() /*no postfix*/, "dictionary_sdfsdfsd");
-        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList());
+        Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.never()).setupSuggestionsForKeyboard(Mockito.anyList(), Mockito.any());
         //this will be called, since abortSuggestions is called (the prefix matches).
         Mockito.verify(mAnySoftKeyboardUnderTest.getSpiedSuggest(), Mockito.atLeastOnce()).resetNextWordSentence();
     }

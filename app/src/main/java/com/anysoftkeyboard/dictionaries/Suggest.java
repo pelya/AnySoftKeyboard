@@ -21,10 +21,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 
+import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.quicktextkeys.TagsExtractor;
 import com.anysoftkeyboard.quicktextkeys.TagsExtractorImpl;
 import com.anysoftkeyboard.utils.IMEUtil;
-import com.anysoftkeyboard.base.utils.Logger;
 import com.menny.android.anysoftkeyboard.BuildConfig;
 
 import java.util.ArrayList;
@@ -155,9 +155,9 @@ public class Suggest {
         mSuggestionsProvider.close();
     }
 
-    public void setupSuggestionsForKeyboard(@NonNull List<DictionaryAddOnAndBuilder> dictionaryBuilders) {
+    public void setupSuggestionsForKeyboard(@NonNull List<DictionaryAddOnAndBuilder> dictionaryBuilders, @NonNull DictionaryBackgroundLoader.Listener cb) {
         if (mEnabledSuggestions && dictionaryBuilders.size() > 0) {
-            mSuggestionsProvider.setupSuggestionsForKeyboard(dictionaryBuilders);
+            mSuggestionsProvider.setupSuggestionsForKeyboard(dictionaryBuilders, cb);
         } else {
             closeDictionaries();
         }
@@ -281,7 +281,7 @@ public class Suggest {
         //same order
         int nextWordInsertionIndex = 0;
         for (CharSequence nextWordSuggestion : mNextSuggestions) {
-            if (nextWordSuggestion.length() >= typedWordLength && nextWordSuggestion.subSequence(0, typedWordLength).equals(mOriginalWord)) {
+            if (nextWordSuggestion.length() >= typedWordLength && TextUtils.equals(nextWordSuggestion.subSequence(0, typedWordLength), mOriginalWord)) {
                 mSuggestions.add(nextWordInsertionIndex, nextWordSuggestion);
                 nextWordInsertionIndex++;//next next-word will have lower usage, so it should be added after this one.
             }
@@ -308,7 +308,7 @@ public class Suggest {
             // Is there an AutoText correction?
             // Is that correction already the current prediction (or original
             // word)?
-            boolean canAdd = (!TextUtils.isEmpty(autoText)) && (!TextUtils.equals(autoText, mOriginalWord));
+            boolean canAdd = !TextUtils.isEmpty(autoText) && !TextUtils.equals(autoText, mOriginalWord);
             if (canAdd) {
                 mHaveCorrection = true;
                 if (mSuggestions.size() == 0) {
@@ -322,10 +322,8 @@ public class Suggest {
         IMEUtil.removeDupes(mSuggestions, mStringPool);
 
         // Check if the first suggestion has a minimum number of characters in common
-        if (mHaveCorrection && mSuggestions.size() > 1 && mExplodedAbbreviations.size() == 0) {
-            if (!haveSufficientCommonality(mLowerOriginalWord, mSuggestions.get(1))) {
-                mHaveCorrection = false;
-            }
+        if (mHaveCorrection && mSuggestions.size() > 1 && mExplodedAbbreviations.size() == 0 && !haveSufficientCommonality(mLowerOriginalWord, mSuggestions.get(1))) {
+            mHaveCorrection = false;
         }
         return mSuggestions;
     }

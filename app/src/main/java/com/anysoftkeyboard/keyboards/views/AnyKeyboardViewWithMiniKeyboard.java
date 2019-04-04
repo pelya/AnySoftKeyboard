@@ -32,6 +32,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.PopupWindow;
 
+import com.anysoftkeyboard.overlay.OverlayData;
 import com.anysoftkeyboard.addons.AddOn;
 import com.anysoftkeyboard.base.utils.CompatUtils;
 import com.anysoftkeyboard.keyboards.AnyPopupKeyboard;
@@ -154,6 +155,7 @@ public class AnyKeyboardViewWithMiniKeyboard extends SizeSensitiveAnyKeyboardVie
         mMiniKeyboard = (AnyKeyboardViewBase) inflater.inflate(R.layout.popup_keyboard_layout, null);
 
         mMiniKeyboard.setOnKeyboardActionListener(mChildKeyboardActionListener);
+        mMiniKeyboard.setThemeOverlay(mThemeOverlay);
     }
 
     protected void setPopupKeyboardWithView(int x, int y, int originX, int originY, View contentView) {
@@ -184,6 +186,14 @@ public class AnyKeyboardViewWithMiniKeyboard extends SizeSensitiveAnyKeyboardVie
         return true;
     }
 
+    @Override
+    public void setThemeOverlay(@NonNull OverlayData overlayData) {
+        super.setThemeOverlay(overlayData);
+        if (mMiniKeyboard != null) {
+            mMiniKeyboard.setThemeOverlay(mThemeOverlay);
+        }
+    }
+
     protected void showMiniKeyboardForPopupKey(@NonNull AddOn keyboardAddOn, @NonNull Keyboard.Key popupKey, boolean isSticky) {
         int[] windowOffset = getLocationInWindow();
 
@@ -205,7 +215,7 @@ public class AnyKeyboardViewWithMiniKeyboard extends SizeSensitiveAnyKeyboardVie
 
         setPopupKeyboardWithView(x, y, originX, originY, mMiniKeyboard);
 
-        setPopupStickinessValues(isSticky, !isSticky, popupKey.x + popupKey.width / 2, popupKey.y + popupKey.height / 2);
+        setPopupStickinessValues(isSticky, !isSticky, popupKey.centerX, popupKey.centerY);
 
         dismissAllKeyPreviews();
 
@@ -233,8 +243,9 @@ public class AnyKeyboardViewWithMiniKeyboard extends SizeSensitiveAnyKeyboardVie
             mMiniKeyboardOriginY = 0;
             mPointerQueue.cancelAllPointers();
             invalidateAllKeys();
-            if (mPopupShownListener != null)
+            if (mPopupShownListener != null) {
                 mPopupShownListener.onPopupKeyboardShowingChanged(false);
+            }
             return true;
         } else {
             return false;

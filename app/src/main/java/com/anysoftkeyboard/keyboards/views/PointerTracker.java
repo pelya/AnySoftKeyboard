@@ -34,11 +34,11 @@ class PointerTracker {
         int delayBeforeKeyRepeatStart;
         int longPressKeyTimeout;
         int multiTapKeyTimeout;
-
-        boolean gestureTypingEnabled;
     }
 
     interface UIProxy {
+        boolean isAtTwoFingersState();
+
         void invalidateKey(Key key);
 
         void showPreview(int keyIndex, PointerTracker tracker);
@@ -146,8 +146,9 @@ class PointerTracker {
     }
 
     PointerTracker(int id, KeyPressTimingHandler handler, KeyDetector keyDetector, UIProxy proxy, @NonNull SharedPointerTrackersData sharedPointerTrackersData) {
-        if (proxy == null || handler == null || keyDetector == null)
+        if (proxy == null || handler == null || keyDetector == null) {
             throw new NullPointerException();
+        }
         mSharedPointerTrackersData = sharedPointerTrackersData;
         mPointerId = id;
         mProxy = proxy;
@@ -192,8 +193,9 @@ class PointerTracker {
     }
 
     private void updateKey(int keyIndex) {
-        if (mKeyAlreadyProcessed)
+        if (mKeyAlreadyProcessed) {
             return;
+        }
         int oldKeyIndex = mPreviousKey;
         mPreviousKey = keyIndex;
         if (keyIndex != oldKeyIndex) {
@@ -239,29 +241,27 @@ class PointerTracker {
         mKeyboardLayoutHasBeenChanged = false;
         mKeyAlreadyProcessed = false;
         mIsRepeatableKey = false;
+        mKeyCodesInPathLength = -1;
         checkMultiTap(eventTime, keyIndex);
-        if (mListener != null) {
-            if (isValidKeyIndex(keyIndex)) {
-                Key key = mKeys[keyIndex];
-                final int codeAtIndex = key.getCodeAtIndex(0, mKeyDetector.isKeyShifted(key));
+        if (mListener != null && isValidKeyIndex(keyIndex)) {
+            AnyKey key = (AnyKey) mKeys[keyIndex];
+            final int codeAtIndex = key.getCodeAtIndex(0, mKeyDetector.isKeyShifted(key));
 
-                if (mSharedPointerTrackersData.gestureTypingEnabled && mListener.isValidGestureTypingStart(x, y)) {
-                    mListener.onGestureTypingInputStart(x, y, eventTime);
-                    mKeyCodesInPathLength = 1;
-                }
+            if (!mProxy.isAtTwoFingersState() && mListener.onGestureTypingInputStart(x, y, key, eventTime)) {
+                mKeyCodesInPathLength = 1;
+            }
 
-                if (codeAtIndex != 0) {
-                    mListener.onPress(codeAtIndex);
-                    //also notifying about first down
-                    mListener.onFirstDownKey(codeAtIndex);
-                }
-                // This onPress call may have changed keyboard layout. Those cases are detected at
-                // {@link #setKeyboard}. In those cases, we should update keyIndex according to the
-                // new keyboard layout.
-                if (mKeyboardLayoutHasBeenChanged) {
-                    mKeyboardLayoutHasBeenChanged = false;
-                    keyIndex = mKeyState.onDownKey(x, y);
-                }
+            if (codeAtIndex != 0) {
+                mListener.onPress(codeAtIndex);
+                //also notifying about first down
+                mListener.onFirstDownKey(codeAtIndex);
+            }
+            // This onPress call may have changed keyboard layout. Those cases are detected at
+            // {@link #setKeyboard}. In those cases, we should update keyIndex according to the
+            // new keyboard layout.
+            if (mKeyboardLayoutHasBeenChanged) {
+                mKeyboardLayoutHasBeenChanged = false;
+                keyIndex = mKeyState.onDownKey(x, y);
             }
         }
         if (isValidKeyIndex(keyIndex)) {
@@ -280,8 +280,9 @@ class PointerTracker {
             mListener.onGestureTypingInput(x, y, eventTime);
         }
 
-        if (mKeyAlreadyProcessed)
+        if (mKeyAlreadyProcessed) {
             return;
+        }
         final KeyState keyState = mKeyState;
         final int oldKeyIndex = keyState.getKeyIndex();
         int keyIndex = keyState.onMoveKey(x, y);
@@ -308,8 +309,9 @@ class PointerTracker {
                 // The pointer has been slid in to the new key from the previous key, we must call
                 // onRelease() first to notify that the previous key has been released, then call
                 // onPress() to notify that the new key is being pressed.
-                if (mListener != null && !isInGestureTyping())
+                if (mListener != null && !isInGestureTyping()) {
                     mListener.onRelease(oldKey.getCodeAtIndex(0, mKeyDetector.isKeyShifted(oldKey)));
+                }
                 resetMultiTap();
                 if (mListener != null) {
                     Key key = getKey(keyIndex);
@@ -336,8 +338,9 @@ class PointerTracker {
             if (oldKey != null && !isMinorMoveBounce(x, y, keyIndex)) {
                 // The pointer has been slid out from the previous key, we must call onRelease() to
                 // notify that the previous key has been released.
-                if (mListener != null)
+                if (mListener != null) {
                     mListener.onRelease(oldKey.getCodeAtIndex(0, mKeyDetector.isKeyShifted(oldKey)));
+                }
                 resetMultiTap();
                 keyState.onMoveToNewKey(keyIndex, x, y);
                 mHandler.cancelLongPressTimer();
@@ -353,8 +356,9 @@ class PointerTracker {
         mHandler.cancelAllMessages();
         mProxy.hidePreview(mKeyState.getKeyIndex(), this);
         showKeyPreviewAndUpdateKey(NOT_A_KEY);
-        if (mKeyAlreadyProcessed)
+        if (mKeyAlreadyProcessed) {
             return;
+        }
         int keyIndex = mKeyState.onUpKey(x, y);
         if (isMinorMoveBounce(x, y, keyIndex)) {
             // Use previous fixed key index and coordinates.
@@ -366,11 +370,13 @@ class PointerTracker {
             detectAndSendKey(keyIndex, x, y, eventTime);
         }
 
-        if (isValidKeyIndex(keyIndex))
+        if (isValidKeyIndex(keyIndex)) {
             mProxy.invalidateKey(mKeys[keyIndex]);
+        }
     }
 
     void onCancelEvent() {
+        mKeyCodesInPathLength = -1;
         mHandler.cancelAllMessages();
         int keyIndex = mKeyState.getKeyIndex();
         mProxy.hidePreview(keyIndex, this);
@@ -397,8 +403,9 @@ class PointerTracker {
     }
 
     private boolean isMinorMoveBounce(int x, int y, int newKey) {
-        if (mKeys == null || mKeyHysteresisDistanceSquared < 0)
+        if (mKeys == null || mKeyHysteresisDistanceSquared < 0) {
             throw new IllegalStateException("keyboard and/or hysteresis not set");
+        }
         int curKey = mKeyState.getKeyIndex();
         if (newKey == curKey) {
             return true;
@@ -446,8 +453,9 @@ class PointerTracker {
         final Key key = getKey(index);
 
         if (key == null) {
-            if (listener != null)
+            if (listener != null) {
                 listener.onCancel();
+            }
         } else {
             if (key.text != null) {
                 if (listener != null) {
@@ -481,14 +489,15 @@ class PointerTracker {
                 if (listener != null) {
                     if (isInGestureTyping()) {
                         listener.onGestureTypingInputDone();
-                        mKeyCodesInPathLength = -1;
                     } else {
                         listener.onKey(code, key, mTapCount, nearByKeyCodes, x >= 0 || y >= 0);
                     }
+                    mKeyCodesInPathLength = -1;
                     listener.onRelease(code);
 
-                    if (multiTapStarted)
+                    if (multiTapStarted) {
                         mListener.onMultiTapEnded();
+                    }
                 }
             }
             mSharedPointerTrackersData.lastSentKeyIndex = index;
@@ -527,8 +536,9 @@ class PointerTracker {
 
     private void checkMultiTap(long eventTime, int keyIndex) {
         Key key = getKey(keyIndex);
-        if (key == null)
+        if (key == null) {
             return;
+        }
 
         final boolean isMultiTap =
                 (eventTime < mLastTapTime + mSharedPointerTrackersData.multiTapKeyTimeout && keyIndex == mSharedPointerTrackersData.lastSentKeyIndex);
@@ -547,7 +557,7 @@ class PointerTracker {
         }
     }
 
-    public boolean isInGestureTyping() {
+    boolean isInGestureTyping() {
         return mKeyCodesInPathLength > 1;
     }
 

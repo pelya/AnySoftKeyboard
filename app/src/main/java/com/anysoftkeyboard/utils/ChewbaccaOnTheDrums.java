@@ -7,8 +7,8 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.widget.Toast;
 
-import com.anysoftkeyboard.dictionaries.WordComposer;
 import com.anysoftkeyboard.base.utils.Logger;
+import com.anysoftkeyboard.dictionaries.WordComposer;
 
 import java.util.Random;
 
@@ -21,9 +21,9 @@ public class ChewbaccaOnTheDrums {
         if (TextUtils.isEmpty(typed)) return;
 
         String eggType = "";
-        if (typed.length() == CHEWBACCAONTHEDRUMS.length() && typed.toString().equals(CHEWBACCAONTHEDRUMS)) {
+        if (typed.length() == CHEWBACCAONTHEDRUMS.length() && TextUtils.equals(typed, CHEWBACCAONTHEDRUMS)) {
             eggType = CHEWBACCAONTHEDRUMS;
-        } else if (typed.length() == DAVIDBOWIE.length() && typed.toString().equals(DAVIDBOWIE)) {
+        } else if (typed.length() == DAVIDBOWIE.length() && TextUtils.equals(typed, DAVIDBOWIE)) {
             eggType = DAVIDBOWIE;
         }
 

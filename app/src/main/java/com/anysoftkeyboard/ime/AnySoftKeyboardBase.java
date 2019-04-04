@@ -18,6 +18,7 @@ package com.anysoftkeyboard.ime;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.graphics.drawable.Drawable;
 import android.inputmethodservice.InputMethodService;
 import android.support.annotation.CallSuper;
 import android.support.annotation.DrawableRes;
@@ -36,22 +37,24 @@ import android.widget.Toast;
 
 import com.anysoftkeyboard.base.utils.GCUtils;
 import com.anysoftkeyboard.base.utils.Logger;
-import com.anysoftkeyboard.dictionaries.Suggest;
 import com.anysoftkeyboard.dictionaries.WordComposer;
 import com.anysoftkeyboard.keyboards.views.KeyboardViewContainerView;
 import com.anysoftkeyboard.keyboards.views.OnKeyboardActionListener;
 import com.anysoftkeyboard.ui.dev.DeveloperUtils;
 import com.anysoftkeyboard.utils.ModifierKeyState;
+import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.BuildConfig;
 import com.menny.android.anysoftkeyboard.R;
 
+import java.util.List;
+
 import io.reactivex.disposables.CompositeDisposable;
 
-public abstract class AnySoftKeyboardBase
-        extends InputMethodService
-        implements OnKeyboardActionListener {
+public abstract class AnySoftKeyboardBase extends InputMethodService implements OnKeyboardActionListener {
     protected static final String TAG = "ASK";
-    protected Suggest mSuggest;
+
+    protected static final long ONE_FRAME_DELAY = 1000L / 60L;
+
     private KeyboardViewContainerView mInputViewContainer;
     private InputViewBinder mInputView;
     private AlertDialog mOptionsDialog;
@@ -73,7 +76,7 @@ public abstract class AnySoftKeyboardBase
     public void onCreate() {
         Logger.i(TAG, "****** AnySoftKeyboard v%s (%d) service started.", BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE);
         super.onCreate();
-        if ((!BuildConfig.DEBUG) && DeveloperUtils.hasTracingRequested(getApplicationContext())) {
+        if (!BuildConfig.DEBUG && DeveloperUtils.hasTracingRequested(getApplicationContext())) {
             try {
                 DeveloperUtils.startTracing();
                 Toast.makeText(getApplicationContext(), R.string.debug_tracing_starting, Toast.LENGTH_SHORT).show();
@@ -86,7 +89,6 @@ public abstract class AnySoftKeyboardBase
         }
 
         mInputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-        mSuggest = createSuggest();
     }
 
     /*
@@ -114,7 +116,7 @@ public abstract class AnySoftKeyboardBase
         return mInputView;
     }
 
-    public ViewGroup getInputViewContainer() {
+    public KeyboardViewContainerView getInputViewContainer() {
         return mInputViewContainer;
     }
 
@@ -183,7 +185,6 @@ public abstract class AnySoftKeyboardBase
     @CallSuper
     public void onAddOnsCriticalChange() {
         hideWindow();
-        resetInputViews();
     }
 
     @Override
@@ -215,9 +216,6 @@ public abstract class AnySoftKeyboardBase
     public void setInputView(View view) {
         super.setInputView(view);
         updateSoftInputWindowLayoutParameters();
-    }
-
-    protected void resetInputViews() {
     }
 
     @Override
@@ -283,26 +281,10 @@ public abstract class AnySoftKeyboardBase
         }
     }
 
-    /**
-     * Commits the chosen word to the text field and saves it for later
-     * retrieval.
-     *
-     * @param wordToCommit the suggestion picked by the user to be committed to the text
-     *                     field
-     * @param correcting   this is a correction commit
-     */
-    protected abstract void commitWordToInput(@NonNull CharSequence wordToCommit, boolean correcting);
-
     @CallSuper
     @NonNull
-    protected String generateWatermark() {
-        if (BuildConfig.DEBUG) {
-            return "α\uD83D\uDD25";
-        } else if (BuildConfig.TESTING_BUILD) {
-            return "β\uD83D\uDC26";
-        } else {
-            return "";
-        }
+    protected List<Drawable> generateWatermark() {
+        return ((AnyApplication) getApplication()).getInitialWatermarksList();
     }
 
     protected final void setupInputViewWatermark() {
@@ -354,19 +336,8 @@ public abstract class AnySoftKeyboardBase
         mInputSessionDisposables.clear();
     }
 
-    @NonNull
-    protected Suggest createSuggest() {
-        return new Suggest(this);
-    }
-
-    protected abstract boolean isAlphabet(int code);
-
-    protected abstract boolean isSuggestionAffectingCharacter(int code);
-
-    public abstract void pickSuggestionManually(int index, CharSequence suggestion, boolean withAutoSpaceEnabled);
-
-    @CallSuper
-    protected void abortCorrectionAndResetPredictionState(boolean forever) {
-        mSuggest.resetNextWordSentence();
+    @Override
+    public void onCancel() {
+        //the user released their finger outside of any key... okay. I have nothing to do about that.
     }
 }

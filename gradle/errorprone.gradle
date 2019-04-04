@@ -6,13 +6,29 @@ buildscript {
     }
     dependencies {
         //taken from https://github.com/tbroyer/gradle-errorprone-plugin
-        classpath "net.ltgt.gradle:gradle-errorprone-plugin:0.0.14"
+        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.6.1'
     }
 }
 
 apply plugin: "net.ltgt.errorprone"
 
-configurations.errorprone {
+dependencies {
+    //annotationProcessor "com.uber.nullaway:nullaway:0.6.4"
+
     //taken from https://groups.google.com/forum/#!forum/error-prone-announce
-    resolutionStrategy.force 'com.google.errorprone:error_prone_core:2.3.1'
+    errorprone 'com.google.errorprone:error_prone_core:2.3.2'
+    errorproneJavac 'com.google.errorprone:javac:9+181-r4173-1'
+}
+
+
+afterEvaluate {
+    tasks.withType(JavaCompile) { task ->
+        if (task.name.toLowerCase(Locale.US).contains("test")) {
+            task.options.errorprone.errorproneArgs << '-Xep:UndefinedEquals:OFF'
+        }
+//            task.options.errorprone {
+//                check("NullAway", CheckSeverity.ERROR)
+//                option("NullAway:AnnotatedPackages", "com.uber")
+//            }
+    }
 }

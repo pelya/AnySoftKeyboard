@@ -25,18 +25,17 @@ import android.support.annotation.DrawableRes;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.text.TextUtils;
 import android.util.Xml;
 import android.view.inputmethod.EditorInfo;
 
 import com.anysoftkeyboard.addons.AddOn;
 import com.anysoftkeyboard.api.KeyCodes;
+import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.dictionaries.BTreeDictionary;
 import com.anysoftkeyboard.ime.AnySoftKeyboardBase;
 import com.anysoftkeyboard.keyboardextensions.KeyboardExtension;
 import com.anysoftkeyboard.keyboards.views.KeyDrawableStateProvider;
-import com.anysoftkeyboard.base.utils.Logger;
 import com.anysoftkeyboard.utils.Workarounds;
 import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.BuildConfig;
@@ -263,13 +262,14 @@ public abstract class AnyKeyboard extends Keyboard {
 
     protected void addGenericRows(@NonNull final KeyboardDimens keyboardDimens, @NonNull KeyboardExtension topRowPlugin, @NonNull KeyboardExtension bottomRowPlugin) {
         final KeyboardMetadata topMd;
-        if (!mTopRowWasCreated) {
+        final boolean disallowGenericRowsOverride = KeyboardPrefs.disallowGenericRowOverride(mLocalContext);
+        if (!mTopRowWasCreated || disallowGenericRowsOverride) {
             Logger.d(TAG, "Top row layout id %s", topRowPlugin.getId());
             topMd = addKeyboardRow(topRowPlugin.getResourceMapping(), topRowPlugin.getPackageContext(),
                     topRowPlugin.getKeyboardResId(), keyboardDimens, mKeyboardMode);
             fixKeyboardDueToGenericRow(topMd, (int) keyboardDimens.getRowVerticalGap());
         }
-        if (!mBottomRowWasCreated) {
+        if (!mBottomRowWasCreated || disallowGenericRowsOverride) {
             Logger.d(TAG, "Bottom row layout id %s", bottomRowPlugin.getId());
             KeyboardMetadata bottomMd = addKeyboardRow(bottomRowPlugin.getResourceMapping(), bottomRowPlugin.getPackageContext(),
                     bottomRowPlugin.getKeyboardResId(), keyboardDimens, mKeyboardMode);
@@ -282,8 +282,7 @@ public abstract class AnyKeyboard extends Keyboard {
         }
     }
 
-    private void fixKeyboardDueToGenericRow(KeyboardMetadata md,
-                                            int rowVerticalGap) {
+    private void fixKeyboardDueToGenericRow(KeyboardMetadata md, int rowVerticalGap) {
         final int additionalPixels = (md.totalHeight + rowVerticalGap);
         mGenericRowsHeight += additionalPixels;
         if (md.isTopRow) {
@@ -291,6 +290,7 @@ public abstract class AnyKeyboard extends Keyboard {
             for (int keyIndex = md.keysCount; keyIndex < keys.size(); keyIndex++) {
                 final Key key = keys.get(keyIndex);
                 key.y += additionalPixels;
+                key.centerY = key.y + key.height / 2;
             }
         }
     }
@@ -467,7 +467,7 @@ public abstract class AnyKeyboard extends Keyboard {
     }
 
     private boolean isAlphabetKey(Key key) {
-        return (!key.repeatable) && (key.getPrimaryCode() > 0);
+        return !key.repeatable && key.getPrimaryCode() > 0;
     }
 
     public boolean isStartOfWordLetter(char keyValue) {
@@ -599,7 +599,7 @@ public abstract class AnyKeyboard extends Keyboard {
     }
 
     @NonNull
-    public abstract CharSequence getKeyboardId();
+    public abstract String getKeyboardId();
 
     @KeyboardRowModeId
     public int getKeyboardMode() {
@@ -766,7 +766,6 @@ public abstract class AnyKeyboard extends Keyboard {
             return mEnabled && super.isInside(clickedX, clickedY);
         }
 
-        @VisibleForTesting
         public boolean isFunctional() {
             return mFunctionalKey;
         }

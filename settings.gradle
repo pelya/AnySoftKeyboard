@@ -1,1 +1,3 @@
-include ':app', ':base', ':base-rx', ':dictionaries', ':jnidictionaryv1', ':jnidictionaryv2', ':nextword', ':prefs', ':base-test', ':crashlytics', ':pixel'
+include ':external:api', ':external:packs'
+include ':app', ':base', ':base-rx', ':dictionaries', ':jnidictionaryv1', ':jnidictionaryv2', ':nextword', ':prefs', ':base-test', ':pixel', ':overlay'
+

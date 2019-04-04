@@ -9,8 +9,7 @@ import android.widget.FrameLayout;
 
 import com.anysoftkeyboard.api.KeyCodes;
 import com.anysoftkeyboard.ime.InputViewBinder;
-import com.anysoftkeyboard.keyboards.views.AnyKeyboardView;
-import com.anysoftkeyboard.keyboards.views.KeyboardViewContainerView;
+import com.menny.android.anysoftkeyboard.R;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -22,20 +21,6 @@ import org.robolectric.shadows.ShadowAlertDialog;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class AnySoftKeyboardViewRelatedTest extends AnySoftKeyboardBaseTest {
-
-    @Test
-    public void testOnCreateInputView() throws Exception {
-        View mainKeyboardView = mAnySoftKeyboardUnderTest.getInputViewContainer();
-        Assert.assertNotNull(mainKeyboardView);
-        Assert.assertTrue(mainKeyboardView instanceof KeyboardViewContainerView);
-        KeyboardViewContainerView containerView = (KeyboardViewContainerView) mainKeyboardView;
-        Assert.assertEquals(1, containerView.getChildCount());
-        final View inputView = containerView.getChildAt(0);
-        Assert.assertNotNull(inputView);
-        Assert.assertTrue(inputView instanceof AnyKeyboardView);
-        Assert.assertSame(inputView, containerView.getStandardKeyboardView());
-        Mockito.verify(containerView.getStandardKeyboardView()).setWatermark("α\uD83D\uDD25");
-    }
 
     @Test
     public void testSettingsBasic() throws Exception {
@@ -53,7 +38,7 @@ public class AnySoftKeyboardViewRelatedTest extends AnySoftKeyboardBaseTest {
     @Test
     public void testSettingsIncognito() throws Exception {
         //initial watermark
-        Mockito.verify(mAnySoftKeyboardUnderTest.getInputView(), Mockito.never()).setWatermark(Mockito.contains("\uD83D\uDD75"));
+        ViewTestUtils.assertCurrentWatermarkDoesNotHaveDrawable(mAnySoftKeyboardUnderTest.getInputView(), R.drawable.ic_watermark_incognito);
 
         Mockito.reset(mAnySoftKeyboardUnderTest.getInputView());
 
@@ -71,7 +56,7 @@ public class AnySoftKeyboardViewRelatedTest extends AnySoftKeyboardBaseTest {
 
         Assert.assertTrue(mAnySoftKeyboardUnderTest.getSpiedSuggest().isIncognitoMode());
         Assert.assertTrue(mAnySoftKeyboardUnderTest.getQuickKeyHistoryRecords().isIncognitoMode());
-        Mockito.verify(mAnySoftKeyboardUnderTest.getInputView()).setWatermark(Mockito.contains("\uD83D\uDD75"));
+        ViewTestUtils.assertCurrentWatermarkHasDrawable(mAnySoftKeyboardUnderTest.getInputView(), R.drawable.ic_watermark_incognito);
 
         Mockito.reset(mAnySoftKeyboardUnderTest.getInputView());
 
@@ -80,7 +65,7 @@ public class AnySoftKeyboardViewRelatedTest extends AnySoftKeyboardBaseTest {
 
         Assert.assertFalse(mAnySoftKeyboardUnderTest.getSpiedSuggest().isIncognitoMode());
         Assert.assertFalse(mAnySoftKeyboardUnderTest.getQuickKeyHistoryRecords().isIncognitoMode());
-        Mockito.verify(mAnySoftKeyboardUnderTest.getInputView(), Mockito.never()).setWatermark(Mockito.contains("\uD83D\uDD75"));
+        ViewTestUtils.assertCurrentWatermarkDoesNotHaveDrawable(mAnySoftKeyboardUnderTest.getInputView(), R.drawable.ic_watermark_incognito);
     }
 
     @Test
@@ -144,10 +129,8 @@ public class AnySoftKeyboardViewRelatedTest extends AnySoftKeyboardBaseTest {
     public void testResetViewOnAddOnChange() throws Exception {
         final InputViewBinder inputView = mAnySoftKeyboardUnderTest.getInputView();
         Assert.assertNotNull(inputView);
-        Mockito.reset(inputView);
         mAnySoftKeyboardUnderTest.onAddOnsCriticalChange();
         Assert.assertNotNull(mAnySoftKeyboardUnderTest.getInputView());
         Assert.assertSame(inputView, mAnySoftKeyboardUnderTest.getInputView());
-        Mockito.verify(inputView).setKeyboardTheme(Mockito.any());
     }
 }

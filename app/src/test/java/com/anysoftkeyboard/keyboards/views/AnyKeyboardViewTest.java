@@ -1,18 +1,25 @@
 package com.anysoftkeyboard.keyboards.views;
 
+import static android.os.SystemClock.sleep;
+
 import static com.anysoftkeyboard.keyboards.Keyboard.EDGE_LEFT;
 import static com.anysoftkeyboard.keyboards.Keyboard.EDGE_RIGHT;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
+
+import android.app.Application;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.view.MotionEvent;
 import android.widget.PopupWindow;
@@ -37,9 +44,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.robolectric.Robolectric;
-import org.robolectric.RuntimeEnvironment;
-import org.robolectric.shadows.ShadowApplication;
-import org.robolectric.shadows.ShadowSystemClock;
+import org.robolectric.Shadows;
+
+import java.util.Arrays;
+import java.util.List;
+
+import androidx.test.core.app.ApplicationProvider;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
@@ -77,27 +87,28 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         int primaryCode = key.getCodeAtIndex(0, false);
         Mockito.verifyZeroInteractions(mMockKeyboardListener);
 
-        MotionEvent motionEvent = MotionEvent.obtain(100, 100, MotionEvent.ACTION_DOWN, key.x + 1, key.y + 1, 0);
+        MotionEvent motionEvent = MotionEvent.obtain(100, 100, MotionEvent.ACTION_DOWN, key.centerX, key.centerY, 0);
         mViewUnderTest.onTouchEvent(motionEvent);
         motionEvent.recycle();
         Mockito.verify(mMockKeyboardListener).onPress(primaryCode);
         Mockito.verify(mMockKeyboardListener).onFirstDownKey(primaryCode);
+        Mockito.verify(mMockKeyboardListener).onGestureTypingInputStart(eq(key.centerX), eq(key.centerY), same(key), anyLong());
         Mockito.verifyNoMoreInteractions(mMockKeyboardListener);
 
         Mockito.reset(mMockKeyboardListener);
 
-        motionEvent = MotionEvent.obtain(100, 110, MotionEvent.ACTION_UP, key.x + 1, key.y + 1, 0);
+        motionEvent = MotionEvent.obtain(100, 110, MotionEvent.ACTION_UP, key.centerX, key.centerY, 0);
         mViewUnderTest.onTouchEvent(motionEvent);
         motionEvent.recycle();
         InOrder inOrder = Mockito.inOrder(mMockKeyboardListener);
-        inOrder.verify(mMockKeyboardListener).onKey(Mockito.eq(primaryCode), same(key), Mockito.eq(0), any(int[].class), Mockito.eq(true));
+        inOrder.verify(mMockKeyboardListener).onKey(eq(primaryCode), same(key), eq(0), any(int[].class), eq(true));
         inOrder.verify(mMockKeyboardListener).onRelease(primaryCode);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testDisregardIfSameTheme() {
-        final KeyboardThemeFactory keyboardThemeFactory = AnyApplication.getKeyboardThemeFactory(RuntimeEnvironment.application);
+        final KeyboardThemeFactory keyboardThemeFactory = AnyApplication.getKeyboardThemeFactory(getApplicationContext());
         Assert.assertTrue(mThemeWasSet);
         mThemeWasSet = false;
         mViewUnderTest.setKeyboardTheme(keyboardThemeFactory.getAllAddOns().get(2));
@@ -112,7 +123,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
 
     @Test
     public void testKeyClickDomain() {
-        mEnglishKeyboard = AnyApplication.getKeyboardFactory(RuntimeEnvironment.application).getEnabledAddOn()
+        mEnglishKeyboard = AnyApplication.getKeyboardFactory(getApplicationContext()).getEnabledAddOn()
                 .createKeyboard(Keyboard.KEYBOARD_ROW_MODE_URL);
         mEnglishKeyboard.loadKeyboard(mViewUnderTest.getThemedKeyboardDimens());
 
@@ -128,7 +139,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         Mockito.verify(mMockKeyboardListener, Mockito.never()).onKey(anyInt(), any(), anyInt(), any(), anyBoolean());
         Mockito.reset(mMockKeyboardListener);
 
-        Assert.assertNull(ShadowApplication.getInstance().getLatestPopupWindow());
+        Assert.assertNull(Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow());
 
         ViewTestUtils.navigateFromTo(mViewUnderTest, key, key, 1000, true, false);
 
@@ -136,7 +147,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         Mockito.verify(mMockKeyboardListener, Mockito.never()).onKey(anyInt(), any(), anyInt(), any(), anyBoolean());
         Mockito.reset(mMockKeyboardListener);
 
-        PopupWindow currentlyShownPopup = ShadowApplication.getInstance().getLatestPopupWindow();
+        PopupWindow currentlyShownPopup = Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow();
         Assert.assertNotNull(currentlyShownPopup);
         Assert.assertTrue(currentlyShownPopup.isShowing());
         AnyKeyboardViewBase miniKeyboard = mViewUnderTest.getMiniKeyboard();
@@ -147,7 +158,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
     public void testTouchIsDisabledOnGestureUntilAllPointersAreUp() {
         final int primaryKey1 = 'a';
         final int keyAIndex = findKeyIndex(primaryKey1);
-        final int keyFIndex = findKeyIndex('f');
+        final int keyDIndex = findKeyIndex('d');
         final int keyJIndex = findKeyIndex('j');
         AnyKeyboard.AnyKey key1 = (AnyKeyboard.AnyKey) mEnglishKeyboard.getKeys().get(keyAIndex);
         AnyKeyboard.AnyKey key2 = (AnyKeyboard.AnyKey) mEnglishKeyboard.getKeys().get(keyJIndex);
@@ -160,7 +171,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         inOrder.verify(mMockKeyboardListener).onPress(primaryKey1);
         Mockito.verify(mMockKeyboardListener).onFirstDownKey(primaryKey1);
         //swipe gesture will be detected at key "f".
-        for (int keyIndex = keyAIndex; keyIndex < keyFIndex; keyIndex++) {
+        for (int keyIndex = keyAIndex; keyIndex < keyDIndex; keyIndex++) {
             inOrder.verify(mMockKeyboardListener).onRelease(mEnglishKeyboard.getKeys().get(keyIndex).getCodeAtIndex(0, false));
             inOrder.verify(mMockKeyboardListener).onPress(mEnglishKeyboard.getKeys().get(keyIndex + 1).getCodeAtIndex(0, false));
         }
@@ -187,18 +198,18 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         Mockito.verify(mMockKeyboardListener).onFirstDownKey(primaryKey1);
         inOrder.verify(mMockKeyboardListener).onRelease(primaryKey1);
         inOrder.verify(mMockKeyboardListener).onPress(primaryKey2);
-        inOrder.verify(mMockKeyboardListener).onKey(Mockito.eq(primaryKey2), same(key2), Mockito.eq(0), any(int[].class), Mockito.eq(true));
+        inOrder.verify(mMockKeyboardListener).onKey(eq(primaryKey2), same(key2), eq(0), any(int[].class), eq(true));
         inOrder.verify(mMockKeyboardListener).onRelease(primaryKey2);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testSlideToExtensionKeyboard() {
-        ShadowSystemClock.sleep(1225);
-        Assert.assertNull(ShadowApplication.getInstance().getLatestPopupWindow());
+        sleep(1225);
+        Assert.assertNull(Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow());
         ViewTestUtils.navigateFromTo(mViewUnderTest, new Point(10, 10), new Point(10, -20), 200, true, false);
 
-        PopupWindow currentlyShownPopup = ShadowApplication.getInstance().getLatestPopupWindow();
+        PopupWindow currentlyShownPopup = Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow();
         Assert.assertNotNull(currentlyShownPopup);
         Assert.assertTrue(currentlyShownPopup.isShowing());
         AnyKeyboardViewBase miniKeyboard = mViewUnderTest.getMiniKeyboard();
@@ -216,18 +227,78 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
     @Test
     public void testSlideToExtensionKeyboardWhenDisabled() {
         SharedPrefsHelper.setPrefsValue(R.string.settings_key_extension_keyboard_enabled, false);
-        ShadowSystemClock.sleep(1225);
-        Assert.assertNull(ShadowApplication.getInstance().getLatestPopupWindow());
+        sleep(1225);
+        Assert.assertNull(Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow());
         ViewTestUtils.navigateFromTo(mViewUnderTest, new Point(10, 10), new Point(10, -20), 200, true, false);
 
-        PopupWindow currentlyShownPopup = ShadowApplication.getInstance().getLatestPopupWindow();
+        PopupWindow currentlyShownPopup = Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow();
         Assert.assertNull(currentlyShownPopup);
     }
 
     @Test
+    public void testSwipeUpToUtilitiesKeyboardWithGestureTyping() {
+        sleep(1225);
+        Mockito.doReturn(true).when(mMockKeyboardListener)
+                .onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+
+        final AnyKeyboard.AnyKey key = findKey('a');
+        ViewTestUtils.navigateFromTo(mViewUnderTest, key, key, 30, true, true);
+
+        Mockito.doReturn(false).when(mMockKeyboardListener)
+                .onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+
+        assertSwipeUpToUtilitiesKeyboard();
+    }
+
+    @Test
+    public void testDoesNotReportGestureDoneWhenTwoFingersAreUsed() {
+        sleep(1225);
+        Mockito.doReturn(true).when(mMockKeyboardListener)
+                .onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+
+        final Point hPoint = ViewTestUtils.getKeyCenterPoint(findKey('h'));
+        final Point kPoint = ViewTestUtils.getKeyCenterPoint(findKey('k'));
+        final Point ePoint = ViewTestUtils.getKeyCenterPoint(findKey('e'));
+
+
+        ViewTestUtils.navigateFromTo(mViewUnderTest,
+                Arrays.asList(
+                        new ViewTestUtils.Finger(hPoint, ePoint),
+                        new ViewTestUtils.Finger(kPoint, ePoint)),
+                100, true, true);
+
+        Mockito.verify(mMockKeyboardListener, Mockito.never()).onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+        Mockito.verify(mMockKeyboardListener, Mockito.never()).onGestureTypingInput(anyInt(), anyInt(), anyLong());
+        Mockito.verify(mMockKeyboardListener, Mockito.never()).onGestureTypingInputDone();
+    }
+
+    @Test
+    public void testReportGestureDoneHappyPath() {
+        sleep(1225);
+        Mockito.doReturn(true).when(mMockKeyboardListener)
+                .onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+
+        ViewTestUtils.navigateFromTo(mViewUnderTest, findKey('h'), findKey('e'), 100, true, true);
+
+        final InOrder inOrder = Mockito.inOrder(mMockKeyboardListener);
+        inOrder.verify(mMockKeyboardListener).onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+        inOrder.verify(mMockKeyboardListener, Mockito.atLeastOnce()).onGestureTypingInput(anyInt(), anyInt(), anyLong());
+        inOrder.verify(mMockKeyboardListener).onGestureTypingInputDone();
+    }
+
+    @Test
     public void testSwipeUpToUtilitiesKeyboard() {
-        ShadowSystemClock.sleep(1225);
-        Assert.assertNull(ShadowApplication.getInstance().getLatestPopupWindow());
+        sleep(1225);
+        Mockito.doReturn(false).when(mMockKeyboardListener)
+                .onGestureTypingInputStart(anyInt(), anyInt(), any(), anyLong());
+
+        final AnyKeyboard.AnyKey key = findKey('a');
+        ViewTestUtils.navigateFromTo(mViewUnderTest, key, key, 30, true, true);
+
+        assertSwipeUpToUtilitiesKeyboard();
+    }
+
+    private void assertSwipeUpToUtilitiesKeyboard() {
         //flinging up
         final Keyboard.Key spaceKey = findKey(' ');
         final Point upPoint = ViewTestUtils.getKeyCenterPoint(spaceKey);
@@ -240,13 +311,13 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
 
         mViewUnderTest.openUtilityKeyboard();
 
-        PopupWindow currentlyShownPopup = ShadowApplication.getInstance().getLatestPopupWindow();
+        PopupWindow currentlyShownPopup = Shadows.shadowOf((Application) ApplicationProvider.getApplicationContext()).getLatestPopupWindow();
         Assert.assertNotNull(currentlyShownPopup);
         Assert.assertTrue(currentlyShownPopup.isShowing());
         AnyKeyboardViewBase miniKeyboard = mViewUnderTest.getMiniKeyboard();
         Assert.assertNotNull(miniKeyboard);
         Assert.assertNotNull(miniKeyboard.getKeyboard());
-        Assert.assertEquals(20, miniKeyboard.getKeyboard().getKeys().size());
+        Assert.assertEquals(21, miniKeyboard.getKeyboard().getKeys().size());
 
         //hiding
         mViewUnderTest.resetInputView();
@@ -269,7 +340,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         Assert.assertArrayEquals(provider.KEY_STATE_FUNCTIONAL_NORMAL, quickTextPopupKey.getCurrentDrawableState(provider));
 
         ViewTestUtils.navigateFromTo(mViewUnderTest, quickTextPopupKey, quickTextPopupKey, 400, true, false);
-        Mockito.verify(mMockKeyboardListener).onKey(Mockito.eq(KeyCodes.QUICK_TEXT_POPUP), same(quickTextPopupKey), Mockito.eq(0), Mockito.nullable(int[].class), Mockito.eq(true));
+        Mockito.verify(mMockKeyboardListener).onKey(eq(KeyCodes.QUICK_TEXT_POPUP), same(quickTextPopupKey), eq(0), Mockito.nullable(int[].class), eq(true));
     }
 
     @Test
@@ -280,10 +351,10 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         Assert.assertEquals(KeyCodes.SETTINGS, enterKey.longPressCode);
 
         ViewTestUtils.navigateFromTo(mViewUnderTest, enterKey, enterKey, 400, true, true);
-        Mockito.verify(mMockKeyboardListener, Mockito.never()).onKey(Mockito.eq(KeyCodes.ENTER), any(Keyboard.Key.class), Mockito.anyInt(), any(int[].class), Mockito.anyBoolean());
+        Mockito.verify(mMockKeyboardListener, Mockito.never()).onKey(eq(KeyCodes.ENTER), any(Keyboard.Key.class), Mockito.anyInt(), any(int[].class), Mockito.anyBoolean());
         InOrder inOrder = Mockito.inOrder(mMockKeyboardListener);
         inOrder.verify(mMockKeyboardListener).onPress(KeyCodes.ENTER);
-        inOrder.verify(mMockKeyboardListener).onKey(Mockito.eq(KeyCodes.SETTINGS), same(enterKey), Mockito.anyInt(), Mockito.nullable(int[].class), Mockito.anyBoolean());
+        inOrder.verify(mMockKeyboardListener).onKey(eq(KeyCodes.SETTINGS), same(enterKey), Mockito.anyInt(), Mockito.nullable(int[].class), Mockito.anyBoolean());
         inOrder.verify(mMockKeyboardListener).onLongPressDone(same(enterKey));
         inOrder.verifyNoMoreInteractions();
     }
@@ -299,7 +370,7 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
         Assert.assertTrue(edgeTouchPoint.x < edgeKey.x);
 
         ViewTestUtils.navigateFromTo(mViewUnderTest, edgeTouchPoint, edgeTouchPoint, 40, true, true);
-        Mockito.verify(mMockKeyboardListener).onKey(Mockito.eq((int) 'a'), same(edgeKey), Mockito.eq(0), any(int[].class), Mockito.eq(true));
+        Mockito.verify(mMockKeyboardListener).onKey(eq((int) 'a'), same(edgeKey), eq(0), any(int[].class), eq(true));
     }
 
     @Test
@@ -464,9 +535,44 @@ public class AnyKeyboardViewTest extends AnyKeyboardViewWithMiniKeyboardTest {
     public void testPreviewsShouldBeClearedOnThemeSet() {
         Mockito.reset(mSpiedPreviewManager);
 
-        mViewUnderTest.setKeyboardTheme(AnyApplication.getKeyboardThemeFactory(RuntimeEnvironment.application).getAllAddOns().get(1));
+        mViewUnderTest.setKeyboardTheme(AnyApplication.getKeyboardThemeFactory(getApplicationContext()).getAllAddOns().get(1));
 
         Mockito.verify(mSpiedPreviewManager).resetTheme();
         Mockito.verify(mSpiedPreviewManager, Mockito.never()).destroy();
+    }
+
+    @Test
+    public void testWatermarkSetsBounds() {
+        final int dimen = getApplicationContext().getResources().getDimensionPixelOffset(R.dimen.watermark_size);
+
+        List<Drawable> watermarks = Arrays.asList(Mockito.mock(Drawable.class), Mockito.mock(Drawable.class));
+        mViewUnderTest.setWatermark(watermarks);
+        for (Drawable watermark : watermarks) {
+            Mockito.verify(watermark).setBounds(0, 0, dimen, dimen);
+        }
+    }
+
+    @Test
+    public void testWatermarkDrawn() {
+        List<Drawable> watermarks = Arrays.asList(Mockito.mock(Drawable.class), Mockito.mock(Drawable.class));
+        mViewUnderTest.setWatermark(watermarks);
+
+        final Canvas canvas = Mockito.mock(Canvas.class);
+        mViewUnderTest.onDraw(canvas);
+
+        for (Drawable watermark : watermarks) {
+            Mockito.verify(watermark).draw(canvas);
+        }
+
+        final int dimen = getApplicationContext().getResources().getDimensionPixelOffset(R.dimen.watermark_size);
+        final int margin = getApplicationContext().getResources().getDimensionPixelOffset(R.dimen.watermark_margin);
+        final int y = mViewUnderTest.getHeight() - dimen - margin;
+        final int x = 479;//location of the edge of the last key
+        final InOrder inOrder = Mockito.inOrder(canvas);
+
+        inOrder.verify(canvas).translate(x - dimen - margin, y);
+        inOrder.verify(canvas).translate(-x + dimen + margin, -y);
+        inOrder.verify(canvas).translate(x - dimen - dimen - margin - margin, y);
+        inOrder.verify(canvas).translate(-x + dimen + dimen + margin + margin, -y);
     }
 }

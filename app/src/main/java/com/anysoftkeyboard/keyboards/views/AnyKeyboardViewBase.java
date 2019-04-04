@@ -16,6 +16,7 @@
 
 package com.anysoftkeyboard.keyboards.views;
 
+import static com.anysoftkeyboard.overlay.OverlyDataCreatorForAndroid.OS_SUPPORT_FOR_ACCENT;
 import static com.menny.android.anysoftkeyboard.AnyApplication.getKeyboardThemeFactory;
 
 import android.content.Context;
@@ -40,6 +41,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 import android.support.v4.util.ArrayMap;
 import android.support.v4.view.MotionEventCompat;
+import android.support.v4.view.ViewCompat;
 import android.text.Layout.Alignment;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -69,6 +71,9 @@ import com.anysoftkeyboard.keyboards.KeyboardDimens;
 import com.anysoftkeyboard.keyboards.KeyboardSupport;
 import com.anysoftkeyboard.keyboards.views.preview.KeyPreviewsController;
 import com.anysoftkeyboard.keyboards.views.preview.PreviewPopupTheme;
+import com.anysoftkeyboard.overlay.OverlayData;
+import com.anysoftkeyboard.overlay.ThemeOverlayCombiner;
+import com.anysoftkeyboard.overlay.ThemeResourcesHolder;
 import com.anysoftkeyboard.prefs.AnimationsLevel;
 import com.anysoftkeyboard.prefs.RxSharedPrefs;
 import com.anysoftkeyboard.rx.GenericOnError;
@@ -81,6 +86,7 @@ import com.menny.android.anysoftkeyboard.R;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -156,15 +162,12 @@ public class AnyKeyboardViewBase extends View implements
     // XML attribute
     private float mKeyTextSize;
     private FontMetrics mTextFontMetrics;
-    private ColorStateList mKeyTextColor;
     private Typeface mKeyTextStyle = Typeface.DEFAULT;
     private float mLabelTextSize;
     private FontMetrics mLabelFontMetrics;
     private float mKeyboardNameTextSize;
     private FontMetrics mKeyboardNameFontMetrics;
-    private int mKeyboardNameTextColor = Color.WHITE;
     private float mHintTextSize;
-    private ColorStateList mHintTextColor;
     private FontMetrics mHintTextFontMetrics;
     private int mThemeHintLabelAlign;
     private int mThemeHintLabelVAlign;
@@ -172,7 +175,6 @@ public class AnyKeyboardViewBase extends View implements
     private int mShadowRadius;
     private int mShadowOffsetX;
     private int mShadowOffsetY;
-    private Drawable mKeyBackground;
     private float mKeyHysteresisDistance;
     // Main keyboard
     private AnyKeyboard mKeyboard;
@@ -196,11 +198,16 @@ public class AnyKeyboardViewBase extends View implements
     private float mDisplayDensity;
     protected final Subject<AnimationsLevel> mAnimationLevelSubject = BehaviorSubject.createDefault(AnimationsLevel.Some);
     private float mKeysHeightFactor = 1f;
+    @NonNull
+    protected OverlayData mThemeOverlay = new OverlayData();
+    //overrideable theme resources
+    private final ThemeOverlayCombiner mThemeOverlayCombiner = new ThemeOverlayCombiner();
 
     public AnyKeyboardViewBase(Context context, AttributeSet attrs) {
         this(context, attrs, R.style.PlainLightAnySoftKeyboard);
     }
 
+    @SuppressWarnings("PMD.ConstructorCallsOverridableMethod")
     public AnyKeyboardViewBase(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         mDisplayDensity = getResources().getDisplayMetrics().density;
@@ -270,10 +277,6 @@ public class AnyKeyboardViewBase extends View implements
 
         AnimationsLevel.createPrefsObservable(context).subscribe(mAnimationLevelSubject);
 
-        mDisposables.add(rxSharedPrefs.getBoolean(R.string.settings_key_gesture_typing, R.bool.settings_default_gesture_typing)
-                .asObservable().subscribe(enabled -> mSharedPointerTrackersData.gestureTypingEnabled = BuildConfig.DEBUG && enabled,
-                        GenericOnError.onError("failed to get settings_key_gesture_typing")));
-
         mDisposables.add(rxSharedPrefs.getString(R.string.settings_key_long_press_timeout, R.string.settings_default_long_press_timeout)
                 .asObservable().map(Integer::parseInt).subscribe(
                         value -> mSharedPointerTrackersData.delayBeforeKeyRepeatStart = mSharedPointerTrackersData.longPressKeyTimeout = value,
@@ -323,6 +326,7 @@ public class AnyKeyboardViewBase extends View implements
         return mTouchesAreDisabledTillLastFingerIsUp;
     }
 
+    @Override
     public boolean isAtTwoFingersState() {
         //this is a hack, I know.
         //I know that this is a swipe ONLY after the second finger is up, so I already lost the
@@ -348,6 +352,8 @@ public class AnyKeyboardViewBase extends View implements
     @Override
     public void setKeyboardTheme(@NonNull KeyboardTheme theme) {
         if (theme == mLastSetTheme) return;
+        clearKeyIconsCache(true);
+        mKeysIconBuilders.clear();
         mTextWidthCache.clear();
         mLastSetTheme = theme;
 
@@ -462,9 +468,21 @@ public class AnyKeyboardViewBase extends View implements
 
         mPaint.setTextSize(mKeyTextSize);
 
-        mKeyBackground.getPadding(mKeyBackgroundPadding);
-
         mKeyPreviewsManager.resetTheme();
+    }
+
+
+    @Override
+    @CallSuper
+    public void setThemeOverlay(OverlayData overlay) {
+        mThemeOverlay = overlay;
+        if (OS_SUPPORT_FOR_ACCENT) {
+            clearKeyIconsCache(true);
+            mThemeOverlayCombiner.setOverlayData(overlay);
+            final ThemeResourcesHolder themeResources = mThemeOverlayCombiner.getThemeResources();
+            ViewCompat.setBackground(this, themeResources.getKeyboardBackground());
+            invalidateAllKeys();
+        }
     }
 
     protected KeyDetector createKeyDetector(final float slide) {
@@ -487,7 +505,8 @@ public class AnyKeyboardViewBase extends View implements
             case android.R.attr.background:
                 Drawable keyboardBackground = remoteTypedArray.getDrawable(remoteTypedArrayIndex);
                 if (keyboardBackground == null) return false;
-                CompatUtils.setViewBackgroundDrawable(this, keyboardBackground);
+                mThemeOverlayCombiner.setThemeKeyboardBackground(keyboardBackground);
+                ViewCompat.setBackground(this, mThemeOverlayCombiner.getThemeResources().getKeyboardBackground());
                 break;
             case android.R.attr.paddingLeft:
                 padding[0] = remoteTypedArray.getDimensionPixelSize(remoteTypedArrayIndex, -1);
@@ -506,8 +525,12 @@ public class AnyKeyboardViewBase extends View implements
                 if (padding[3] == -1) return false;
                 break;
             case R.attr.keyBackground:
-                mKeyBackground = remoteTypedArray.getDrawable(remoteTypedArrayIndex);
-                if (mKeyBackground == null) return false;
+                Drawable keyBackground = remoteTypedArray.getDrawable(remoteTypedArrayIndex);
+                if (keyBackground == null) {
+                    return false;
+                } else {
+                    mThemeOverlayCombiner.setThemeKeyBackground(keyBackground);
+                }
                 break;
             case R.attr.keyHysteresisDistance:
                 mKeyHysteresisDistance = remoteTypedArray.getDimensionPixelOffset(remoteTypedArrayIndex, -1);
@@ -524,11 +547,12 @@ public class AnyKeyboardViewBase extends View implements
                 Logger.d(TAG, "AnySoftKeyboardTheme_keyTextSize " + mKeyTextSize);
                 break;
             case R.attr.keyTextColor:
-                mKeyTextColor = remoteTypedArray.getColorStateList(remoteTypedArrayIndex);
-                if (mKeyTextColor == null) {
-                    mKeyTextColor = new ColorStateList(new int[][]{{0}},
+                ColorStateList keyTextColor = remoteTypedArray.getColorStateList(remoteTypedArrayIndex);
+                if (keyTextColor == null) {
+                    keyTextColor = new ColorStateList(new int[][]{{0}},
                             new int[]{remoteTypedArray.getColor(remoteTypedArrayIndex, 0xFF000000)});
                 }
+                mThemeOverlayCombiner.setThemeTextColor(keyTextColor);
                 break;
             case R.attr.labelTextSize:
                 mLabelTextSize = remoteTypedArray.getDimensionPixelSize(remoteTypedArrayIndex, -1);
@@ -541,7 +565,7 @@ public class AnyKeyboardViewBase extends View implements
                 mKeyboardNameTextSize *= mKeysHeightFactor;
                 break;
             case R.attr.keyboardNameTextColor:
-                mKeyboardNameTextColor = remoteTypedArray.getColor(remoteTypedArrayIndex, Color.WHITE);
+                mThemeOverlayCombiner.setThemeNameTextColor(remoteTypedArray.getColor(remoteTypedArrayIndex, Color.WHITE));
                 break;
             case R.attr.shadowColor:
                 mShadowColor = remoteTypedArray.getColor(remoteTypedArrayIndex, 0);
@@ -636,10 +660,7 @@ public class AnyKeyboardViewBase extends View implements
                 mHintTextSize *= mKeysHeightFactor;
                 break;
             case R.attr.hintTextColor:
-                mHintTextColor = remoteTypedArray.getColorStateList(remoteTypedArrayIndex);
-                if (mHintTextColor == null) {
-                    mHintTextColor = new ColorStateList(new int[][]{{0}}, new int[]{remoteTypedArray.getColor(remoteTypedArrayIndex, 0xFF000000)});
-                }
+                mThemeOverlayCombiner.setThemeHintTextColor(remoteTypedArray.getColor(remoteTypedArrayIndex, 0xFF000000));
                 break;
             case R.attr.hintLabelVAlign:
                 mThemeHintLabelVAlign = remoteTypedArray.getInt(remoteTypedArrayIndex, Gravity.BOTTOM);
@@ -790,7 +811,6 @@ public class AnyKeyboardViewBase extends View implements
     }
 
     protected void setKeyboard(@NonNull AnyKeyboard keyboard, float verticalCorrection) {
-        mKeysIcons.clear();
         if (mKeyboard != null) {
             dismissAllKeyPreviews();
         }
@@ -816,6 +836,15 @@ public class AnyKeyboardViewBase extends View implements
         invalidateAllKeys();
         computeProximityThreshold(keyboard);
         calculateSwipeDistances();
+    }
+
+    private void clearKeyIconsCache(boolean withOverlay) {
+        for (int i = 0; i < mKeysIcons.size(); i++) {
+            Drawable d = mKeysIcons.valueAt(i);
+            if (withOverlay) mThemeOverlayCombiner.clearFromIcon(d);
+            CompatUtils.unbindDrawable(d);
+        }
+        mKeysIcons.clear();
     }
 
     private void calculateSwipeDistances() {
@@ -853,12 +882,10 @@ public class AnyKeyboardViewBase extends View implements
 
     @Override
     public boolean setShifted(boolean shifted) {
-        if (mKeyboard != null) {
-            if (mKeyboard.setShifted(shifted)) {
-                // The whole keyboard probably needs to be redrawn
-                invalidateAllKeys();
-                return true;
-            }
+        if (mKeyboard != null && mKeyboard.setShifted(shifted)) {
+            // The whole keyboard probably needs to be redrawn
+            invalidateAllKeys();
+            return true;
         }
         return false;
     }
@@ -866,11 +893,9 @@ public class AnyKeyboardViewBase extends View implements
     @Override
     public boolean setShiftLocked(boolean shiftLocked) {
         AnyKeyboard keyboard = getKeyboard();
-        if (keyboard != null) {
-            if (keyboard.setShiftLocked(shiftLocked)) {
-                invalidateAllKeys();
-                return true;
-            }
+        if (keyboard != null && keyboard.setShiftLocked(shiftLocked)) {
+            invalidateAllKeys();
+            return true;
         }
         return false;
     }
@@ -890,12 +915,10 @@ public class AnyKeyboardViewBase extends View implements
 
     @Override
     public boolean setControl(boolean control) {
-        if (mKeyboard != null) {
-            if (mKeyboard.setControl(control)) {
-                // The whole keyboard probably needs to be redrawn
-                invalidateAllKeys();
-                return true;
-            }
+        if (mKeyboard != null && mKeyboard.setControl(control)) {
+            // The whole keyboard probably needs to be redrawn
+            invalidateAllKeys();
+            return true;
         }
         return false;
     }
@@ -1014,16 +1037,14 @@ public class AnyKeyboardViewBase extends View implements
 
         final boolean drawHintText = (mHintTextSize > 1) && mShowHintsOnKeyboard;
 
-        final boolean useCustomKeyTextColor = false;
-        final ColorStateList keyTextColor = useCustomKeyTextColor ?
-                new ColorStateList(new int[][]{{0}}, new int[]{0xFF6666FF})
-                : mKeyTextColor;
+        final ThemeResourcesHolder themeResourcesHolder = mThemeOverlayCombiner.getThemeResources();
+        final ColorStateList keyTextColor = themeResourcesHolder.getKeyTextColor();
 
         // allow preferences to override theme settings for hint text position
         final int hintAlign = mCustomHintGravity == Gravity.NO_GRAVITY ? mThemeHintLabelAlign : mCustomHintGravity & Gravity.HORIZONTAL_GRAVITY_MASK;
         final int hintVAlign = mCustomHintGravity == Gravity.NO_GRAVITY ? mThemeHintLabelVAlign : mCustomHintGravity & Gravity.VERTICAL_GRAVITY_MASK;
 
-        final Drawable keyBackground = mKeyBackground;
+        final Drawable keyBackground = themeResourcesHolder.getKeyBackground();
         final Rect clipRegion = mClipRegion;
         final int kbdPaddingLeft = getPaddingLeft();
         final int kbdPaddingTop = getPaddingTop();
@@ -1031,15 +1052,14 @@ public class AnyKeyboardViewBase extends View implements
         final Key invalidKey = mInvalidatedKey;
 
         boolean drawSingleKey = false;
-        if (invalidKey != null && canvas.getClipBounds(clipRegion)) {
-            // TODO we should use Rect.inset and Rect.contains here.
-            // Is clipRegion completely contained within the invalidated key?
-            if (invalidKey.x + kbdPaddingLeft - 1 <= clipRegion.left
-                    && invalidKey.y + kbdPaddingTop - 1 <= clipRegion.top
-                    && invalidKey.x + invalidKey.width + kbdPaddingLeft + 1 >= clipRegion.right
-                    && invalidKey.y + invalidKey.height + kbdPaddingTop + 1 >= clipRegion.bottom) {
-                drawSingleKey = true;
-            }
+        // TODO we should use Rect.inset and Rect.contains here.
+        // Is clipRegion completely contained within the invalidated key?
+        if (invalidKey != null && canvas.getClipBounds(clipRegion)
+                && invalidKey.x + kbdPaddingLeft - 1 <= clipRegion.left
+                && invalidKey.y + kbdPaddingTop - 1 <= clipRegion.top
+                && invalidKey.x + invalidKey.width + kbdPaddingLeft + 1 >= clipRegion.right
+                && invalidKey.y + invalidKey.height + kbdPaddingTop + 1 >= clipRegion.bottom) {
+            drawSingleKey = true;
         }
 
         for (Key keyBase : keys) {
@@ -1057,7 +1077,7 @@ public class AnyKeyboardViewBase extends View implements
             int[] drawableState = key.getCurrentDrawableState(mDrawableStatesProvider);
 
             if (keyIsSpace) {
-                paint.setColor(mKeyboardNameTextColor);
+                paint.setColor(themeResourcesHolder.getNameTextColor());
             } else {
                 paint.setColor(keyTextColor.getColorForState(drawableState, 0xFF000000));
             }
@@ -1184,82 +1204,79 @@ public class AnyKeyboardViewBase extends View implements
                 paint.setShadowLayer(0, 0, 0, 0);
             }
 
-            if (drawHintText) {
-                if ((key.popupCharacters != null && key.popupCharacters
-                        .length() > 0)
-                        || (key.popupResId != 0)
-                        || (key.longPressCode != 0)) {
-                    Align oldAlign = paint.getTextAlign();
+            if (drawHintText && ((key.popupCharacters != null && key.popupCharacters.length() > 0)
+                    || (key.popupResId != 0)
+                    || (key.longPressCode != 0))) {
+                Align oldAlign = paint.getTextAlign();
 
-                    String hintText = "";
+                String hintText = "";
 
-                    if (key.hintLabel != null && key.hintLabel.length() > 0) {
-                        hintText = key.hintLabel.toString();
-                        // it is the responsibility of the keyboard layout
-                        // designer to ensure that they do
-                        // not put too many characters in the hint label...
-                    } else if (key.longPressCode != 0) {
-                        if (Character.isLetterOrDigit(key.longPressCode)) {
-                            hintText = Character.toString((char) key.longPressCode);
-                        }
-                    } else if (key.popupCharacters != null) {
-                        final String hintString = key.popupCharacters.toString();
-                        final int hintLength = hintString.length();
-                        if (hintLength <= 3) {
-                            hintText = hintString;
-                        } else {
-                            hintText = hintString.substring(0, 3);
-                        }
+                if (key.hintLabel != null && key.hintLabel.length() > 0) {
+                    hintText = key.hintLabel.toString();
+                    // it is the responsibility of the keyboard layout
+                    // designer to ensure that they do
+                    // not put too many characters in the hint label...
+                } else if (key.longPressCode != 0) {
+                    if (Character.isLetterOrDigit(key.longPressCode)) {
+                        hintText = Character.toString((char) key.longPressCode);
                     }
-
-                    if (mKeyboard.isShifted()) {
-                        hintText = hintText.toUpperCase(getKeyboard().getLocale());
-                    }
-
-                    // now draw hint
-                    paint.setTypeface(Typeface.DEFAULT);
-                    paint.setColor(mHintTextColor.getColorForState(drawableState, 0xFF000000));
-                    paint.setTextSize(mHintTextSize);
-                    // get the hint text font metrics so that we know the size
-                    // of the hint when
-                    // we try to position the main label (to try to make sure
-                    // they don't overlap)
-                    if (mHintTextFontMetrics == null) {
-                        mHintTextFontMetrics = paint.getFontMetrics();
-                    }
-
-                    final float hintX;
-                    final float hintY;
-
-                    // the (float) 0.5 value is added or subtracted to just give
-                    // a little more room
-                    // in case the theme designer didn't account for the hint
-                    // label location
-                    if (hintAlign == Gravity.LEFT) {
-                        paint.setTextAlign(Align.LEFT);
-                        hintX = mKeyBackgroundPadding.left + 0.5f;
-                    } else if (hintAlign == Gravity.CENTER_HORIZONTAL) {
-                        // center
-                        paint.setTextAlign(Align.CENTER);
-                        hintX = mKeyBackgroundPadding.left
-                                + (key.width - mKeyBackgroundPadding.left - mKeyBackgroundPadding.right) / 2;
+                } else if (key.popupCharacters != null) {
+                    final String hintString = key.popupCharacters.toString();
+                    final int hintLength = hintString.length();
+                    if (hintLength <= 3) {
+                        hintText = hintString;
                     } else {
-                        // right
-                        paint.setTextAlign(Align.RIGHT);
-                        hintX = key.width - mKeyBackgroundPadding.right - 0.5f;
+                        hintText = hintString.substring(0, 3);
                     }
-
-                    if (hintVAlign == Gravity.TOP) {
-                        // above
-                        hintY = mKeyBackgroundPadding.top - mHintTextFontMetrics.top + 0.5f;
-                    } else {
-                        // below
-                        hintY = key.height - mKeyBackgroundPadding.bottom - mHintTextFontMetrics.bottom - 0.5f;
-                    }
-
-                    canvas.drawText(hintText, hintX, hintY, paint);
-                    paint.setTextAlign(oldAlign);
                 }
+
+                if (mKeyboard.isShifted()) {
+                    hintText = hintText.toUpperCase(getKeyboard().getLocale());
+                }
+
+                // now draw hint
+                paint.setTypeface(Typeface.DEFAULT);
+                paint.setColor(themeResourcesHolder.getHintTextColor());
+                paint.setTextSize(mHintTextSize);
+                // get the hint text font metrics so that we know the size
+                // of the hint when
+                // we try to position the main label (to try to make sure
+                // they don't overlap)
+                if (mHintTextFontMetrics == null) {
+                    mHintTextFontMetrics = paint.getFontMetrics();
+                }
+
+                final float hintX;
+                final float hintY;
+
+                // the (float) 0.5 value is added or subtracted to just give
+                // a little more room
+                // in case the theme designer didn't account for the hint
+                // label location
+                if (hintAlign == Gravity.LEFT) {
+                    paint.setTextAlign(Align.LEFT);
+                    hintX = mKeyBackgroundPadding.left + 0.5f;
+                } else if (hintAlign == Gravity.CENTER_HORIZONTAL) {
+                    // center
+                    paint.setTextAlign(Align.CENTER);
+                    hintX = mKeyBackgroundPadding.left
+                            + (key.width - mKeyBackgroundPadding.left - mKeyBackgroundPadding.right) / 2;
+                } else {
+                    // right
+                    paint.setTextAlign(Align.RIGHT);
+                    hintX = key.width - mKeyBackgroundPadding.right - 0.5f;
+                }
+
+                if (hintVAlign == Gravity.TOP) {
+                    // above
+                    hintY = mKeyBackgroundPadding.top - mHintTextFontMetrics.top + 0.5f;
+                } else {
+                    // below
+                    hintY = key.height - mKeyBackgroundPadding.bottom - mHintTextFontMetrics.bottom - 0.5f;
+                }
+
+                canvas.drawText(hintText, hintX, hintY, paint);
+                paint.setTextAlign(oldAlign);
             }
 
             canvas.translate(-key.x - kbdPaddingLeft, -key.y - kbdPaddingTop);
@@ -1372,13 +1389,11 @@ public class AnyKeyboardViewBase extends View implements
 
     private void setSpecialKeyIconOrLabel(int keyCode) {
         Key key = findKeyByPrimaryKeyCode(keyCode);
-        if (key != null) {
-            if (TextUtils.isEmpty(key.label)) {
-                if (key.dynamicEmblem == Keyboard.KEY_EMBLEM_TEXT) {
-                    key.label = guessLabelForKey(keyCode);
-                } else {
-                    key.icon = getIconForKeyCode(keyCode);
-                }
+        if (key != null && TextUtils.isEmpty(key.label)) {
+            if (key.dynamicEmblem == Keyboard.KEY_EMBLEM_TEXT) {
+                key.label = guessLabelForKey(keyCode);
+            } else {
+                key.icon = getIconForKeyCode(keyCode);
             }
         }
     }
@@ -1462,6 +1477,7 @@ public class AnyKeyboardViewBase extends View implements
             icon = builder.buildDrawable();
 
             if (icon != null) {
+                mThemeOverlayCombiner.applyOnIcon(icon);
                 mKeysIcons.put(keyCode, icon);
                 Logger.v(TAG, "Current drawable cache size is %d", mKeysIcons.size());
             } else {
@@ -1616,8 +1632,8 @@ public class AnyKeyboardViewBase extends View implements
         return mKeyTextSize;
     }
 
-    public ColorStateList getKeyTextColor() {
-        return mKeyTextColor;
+    public ThemeResourcesHolder getCurrentResourcesHolder() {
+        return mThemeOverlayCombiner.getThemeResources();
     }
 
     /**
@@ -1688,8 +1704,8 @@ public class AnyKeyboardViewBase extends View implements
 
     @Override
     public boolean onTouchEvent(@NonNull MotionEvent nativeMotionEvent) {
-        if (mKeyboard == null)//I mean, if there isn't any keyboard I'm handling, what's the point?
-        {
+        if (mKeyboard == null) {
+            //I mean, if there isn't any keyboard I'm handling, what's the point?
             return false;
         }
 
@@ -1844,29 +1860,13 @@ public class AnyKeyboardViewBase extends View implements
     }
 
     @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        // releasing some memory
-        for (int i = 0; i < mKeysIcons.size(); i++) {
-            Drawable d = mKeysIcons.valueAt(i);
-            CompatUtils.unbindDrawable(d);
-        }
-        mKeysIcons.clear();
-    }
-
-    @Override
     public void onViewNotRequired() {
         mDisposables.dispose();
         resetInputView();
         // cleaning up memory
         CompatUtils.unbindDrawable(getBackground());
-        for (int i = 0; i < mKeysIcons.size(); i++) {
-            Drawable d = mKeysIcons.valueAt(i);
-            CompatUtils.unbindDrawable(d);
-        }
-        mKeysIcons.clear();
+        clearKeyIconsCache(false);
         mKeysIconBuilders.clear();
-        CompatUtils.unbindDrawable(mKeyBackground);
         mKeyPreviewsManager.destroy();
 
         mKeyboardActionListener = null;
@@ -1874,7 +1874,7 @@ public class AnyKeyboardViewBase extends View implements
     }
 
     @Override
-    public void setWatermark(@NonNull String text) {
+    public void setWatermark(@NonNull List<Drawable> watermark) {
     }
 
     private void updatePrefSettings(final String overrideValue) {
@@ -1924,10 +1924,8 @@ public class AnyKeyboardViewBase extends View implements
                     startKeyRepeatTimer(keyboard.mKeyRepeatInterval, msg.arg1, tracker);
                     break;
                 case MSG_LONG_PRESS_KEY:
-                    if (keyForLongPress != null) {
-                        if (keyboard.onLongPress(keyboard.getKeyboard().getKeyboardAddOn(), keyForLongPress, false, tracker)) {
-                            keyboard.mKeyboardActionListener.onLongPressDone(keyForLongPress);
-                        }
+                    if (keyForLongPress != null && keyboard.onLongPress(keyboard.getKeyboard().getKeyboardAddOn(), keyForLongPress, false, tracker)) {
+                        keyboard.mKeyboardActionListener.onLongPressDone(keyForLongPress);
                     }
                     break;
                 default:
@@ -2077,9 +2075,9 @@ public class AnyKeyboardViewBase extends View implements
 
         @Override
         public boolean equals(Object o) {
-            return (o instanceof TextWidthCacheKey
+            return o instanceof TextWidthCacheKey
                     && ((TextWidthCacheKey) o).mKeyWidth == mKeyWidth
-                    && ((TextWidthCacheKey) o).mLabel.equals(mLabel));
+                    && TextUtils.equals(((TextWidthCacheKey) o).mLabel, mLabel);
         }
     }
 

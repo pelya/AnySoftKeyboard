@@ -1,12 +1,15 @@
 package com.anysoftkeyboard.ime;
 
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 
+import com.anysoftkeyboard.keyboards.views.ThemeableChild;
 import com.anysoftkeyboard.keyboards.AnyKeyboard;
 import com.anysoftkeyboard.keyboards.KeyboardDimens;
-import com.anysoftkeyboard.theme.KeyboardTheme;
 
-public interface InputViewBinder extends InputViewActionsProvider {
+import java.util.List;
+
+public interface InputViewBinder extends InputViewActionsProvider, ThemeableChild {
 
     /**
      * Returns the {@link KeyboardDimens} describing the UI for the current keyboard view and theme.
@@ -81,7 +84,5 @@ public interface InputViewBinder extends InputViewActionsProvider {
      */
     boolean isShown();
 
-    void setWatermark(@NonNull String text);
-
-    void setKeyboardTheme(@NonNull KeyboardTheme theme);
+    void setWatermark(@NonNull List<Drawable> watermarks);
 }

@@ -16,43 +16,21 @@
 
 package com.anysoftkeyboard.canary;
 
-import android.Manifest;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.os.Build;
+import android.graphics.drawable.Drawable;
+import android.support.v4.content.ContextCompat;
 
-import com.anysoftkeyboard.crashlytics.NdkCrashlytics;
-import com.anysoftkeyboard.ui.settings.MainSettingsActivity;
 import com.menny.android.anysoftkeyboard.AnyApplication;
+import com.menny.android.anysoftkeyboard.R;
 
-import net.evendanan.chauffeur.lib.permissions.PermissionsFragmentChauffeurActivity;
+import java.util.List;
 
 public class CanaryAnyApplication extends AnyApplication {
 
-    private NdkCrashlytics mNdkCrashlytics;
-
     @Override
-    protected void setupCrashHandler(SharedPreferences sp) {
-        super.setupCrashHandler(sp);
-        if (Build.VERSION.SDK_INT >= NdkCrashlytics.SUPPORTED_MIN_SDK) {
-            mNdkCrashlytics = new NdkCrashlytics(this);
-        }
-    }
+    public List<Drawable> getInitialWatermarksList() {
+        List<Drawable> watermarks = super.getInitialWatermarksList();
+        watermarks.add(ContextCompat.getDrawable(this, R.drawable.ic_watermark_beta_build));
 
-    @Override
-    public void onTerminate() {
-        super.onTerminate();
-        if (mNdkCrashlytics != null) {
-            mNdkCrashlytics.destroy();
-        }
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        Intent internetRequired = PermissionsFragmentChauffeurActivity.createIntentToPermissionsRequest(this, MainSettingsActivity.class, CanaryPermissionsRequestCodes.INTERNET.getRequestCode(),
-                Manifest.permission.INTERNET);
-        if (internetRequired != null) startActivity(internetRequired);
+        return watermarks;
     }
 }

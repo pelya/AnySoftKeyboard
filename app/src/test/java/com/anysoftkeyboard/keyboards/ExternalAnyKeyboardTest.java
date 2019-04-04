@@ -1,5 +1,7 @@
 package com.anysoftkeyboard.keyboards;
 
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
+
 import android.content.Context;
 import android.text.TextUtils;
 
@@ -15,7 +17,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RuntimeEnvironment;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class ExternalAnyKeyboardTest {
@@ -56,25 +57,25 @@ public class ExternalAnyKeyboardTest {
 
     @Before
     public void setup() {
-        mContext = RuntimeEnvironment.application;
+        mContext = getApplicationContext();
         mDefaultAddOn = new DefaultAddOn(mContext, mContext);
     }
 
     @Test
     public void testGeneralProperties() throws Exception {
-        AnyKeyboard keyboard = AnyApplication.getKeyboardFactory(RuntimeEnvironment.application).getEnabledAddOn().createKeyboard(Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+        AnyKeyboard keyboard = AnyApplication.getKeyboardFactory(getApplicationContext()).getEnabledAddOn().createKeyboard(Keyboard.KEYBOARD_ROW_MODE_NORMAL);
         Assert.assertNotNull(keyboard);
         Assert.assertTrue(keyboard instanceof ExternalAnyKeyboard);
         Assert.assertEquals("en", keyboard.getDefaultDictionaryLocale());
         Assert.assertEquals("English", keyboard.getKeyboardName());
         Assert.assertEquals("c7535083-4fe6-49dc-81aa-c5438a1a343a", keyboard.getKeyboardId());
-        Assert.assertEquals(R.drawable.ic_stat_en, keyboard.getKeyboardIconResId());
+        Assert.assertEquals(R.drawable.ic_status_english, keyboard.getKeyboardIconResId());
         Assert.assertEquals(1, keyboard.getKeyboardMode());
     }
 
     @Test
     public void testLoadedKeyboard() throws Exception {
-        AnyKeyboard keyboard = AnyApplication.getKeyboardFactory(RuntimeEnvironment.application).getEnabledAddOn().createKeyboard(Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+        AnyKeyboard keyboard = AnyApplication.getKeyboardFactory(getApplicationContext()).getEnabledAddOn().createKeyboard(Keyboard.KEYBOARD_ROW_MODE_NORMAL);
         Assert.assertNotNull(keyboard);
         keyboard.loadKeyboard(SIMPLE_KeyboardDimens);
 
@@ -88,7 +89,7 @@ public class ExternalAnyKeyboardTest {
     @Test
     public void testDrawableState() throws Exception {
         //NOTE: this is used ONLY for the key's background drawable!
-        AnyKeyboard keyboard = AnyApplication.getKeyboardFactory(RuntimeEnvironment.application).getEnabledAddOn().createKeyboard(Keyboard.KEYBOARD_ROW_MODE_NORMAL);
+        AnyKeyboard keyboard = AnyApplication.getKeyboardFactory(getApplicationContext()).getEnabledAddOn().createKeyboard(Keyboard.KEYBOARD_ROW_MODE_NORMAL);
         Assert.assertNotNull(keyboard);
         keyboard.loadKeyboard(SIMPLE_KeyboardDimens);
 

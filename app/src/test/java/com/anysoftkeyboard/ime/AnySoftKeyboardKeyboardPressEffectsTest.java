@@ -1,14 +1,20 @@
 package com.anysoftkeyboard.ime;
 
+import static com.anysoftkeyboard.android.NightModeTest.configurationForNightMode;
+
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
+
+import android.content.res.Configuration;
 import android.media.AudioManager;
 
 import com.anysoftkeyboard.AnySoftKeyboardBaseTest;
 import com.anysoftkeyboard.AnySoftKeyboardRobolectricTestRunner;
 import com.anysoftkeyboard.ShadowAskAudioManager;
+import com.anysoftkeyboard.android.PowerSavingTest;
 import com.anysoftkeyboard.api.KeyCodes;
 import com.anysoftkeyboard.keyboards.Keyboard;
-import com.anysoftkeyboard.powersave.PowerSavingTest;
 import com.anysoftkeyboard.test.SharedPrefsHelper;
+import com.menny.android.anysoftkeyboard.AnyApplication;
 import com.menny.android.anysoftkeyboard.R;
 
 import org.junit.Assert;
@@ -16,7 +22,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.robolectric.Robolectric;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.shadows.ShadowVibrator;
 
@@ -26,7 +31,7 @@ public class AnySoftKeyboardKeyboardPressEffectsTest extends AnySoftKeyboardBase
     @Test
     public void testLoadAndUnloadSystemSounds() {
         ShadowAskAudioManager shadowAudioManager = (ShadowAskAudioManager) Shadows.shadowOf(mAnySoftKeyboardUnderTest.getAudioManager());
-        Assert.assertEquals(RuntimeEnvironment.application.getResources().getBoolean(R.bool.settings_default_sound_on), shadowAudioManager.areSoundEffectsLoaded());
+        Assert.assertEquals(getApplicationContext().getResources().getBoolean(R.bool.settings_default_sound_on), shadowAudioManager.areSoundEffectsLoaded());
 
         SharedPrefsHelper.setPrefsValue(R.string.settings_key_sound_on, true);
         Assert.assertTrue(shadowAudioManager.areSoundEffectsLoaded());
@@ -101,6 +106,66 @@ public class AnySoftKeyboardKeyboardPressEffectsTest extends AnySoftKeyboardBase
 
         mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
         Assert.assertEquals(AudioManager.FX_KEYPRESS_SPACEBAR, shadowAudioManager.getLastPlaySoundEffectType());
+    }
+
+    @Test
+    public void testDoNotPlaysSoundWhenNightTime() {
+        SharedPrefsHelper.setPrefsValue(R.string.settings_key_night_mode, "follow_system");
+        ShadowAskAudioManager shadowAudioManager = (ShadowAskAudioManager) Shadows.shadowOf(mAnySoftKeyboardUnderTest.getAudioManager());
+        SharedPrefsHelper.setPrefsValue(R.string.settings_key_sound_on, true);
+        shadowAudioManager.getLastPlaySoundEffectType();
+
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertEquals(AudioManager.FX_KEYPRESS_SPACEBAR, shadowAudioManager.getLastPlaySoundEffectType());
+
+        AnyApplication application = getApplicationContext();
+        application.onConfigurationChanged(configurationForNightMode(Configuration.UI_MODE_NIGHT_YES));
+
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertEquals(Integer.MIN_VALUE, shadowAudioManager.getLastPlaySoundEffectType());
+
+        SharedPrefsHelper.setPrefsValue(R.string.settings_key_night_mode_sound_control, false);
+
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertEquals(AudioManager.FX_KEYPRESS_SPACEBAR, shadowAudioManager.getLastPlaySoundEffectType());
+    }
+
+    @Test
+    public void testDoNotVibrateWhenNightTime() {
+        SharedPrefsHelper.setPrefsValue(R.string.settings_key_night_mode, "follow_system");
+        Robolectric.flushForegroundThreadScheduler();
+        SharedPrefsHelper.setPrefsValue(R.string.settings_key_vibrate_on_key_press_duration, "10");
+        ShadowVibrator shadowVibrator = Shadows.shadowOf(mAnySoftKeyboardUnderTest.getVibrator());
+
+        Robolectric.flushForegroundThreadScheduler();
+        Assert.assertFalse(shadowVibrator.isVibrating());
+
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertTrue(shadowVibrator.isVibrating());
+
+        Robolectric.flushForegroundThreadScheduler();
+
+        AnyApplication application = getApplicationContext();
+        application.onConfigurationChanged(configurationForNightMode(Configuration.UI_MODE_NIGHT_YES));
+
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertFalse(shadowVibrator.isVibrating());
+
+        Robolectric.flushForegroundThreadScheduler();
+
+        application.onConfigurationChanged(configurationForNightMode(Configuration.UI_MODE_NIGHT_NO));
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertTrue(shadowVibrator.isVibrating());
+
+        Robolectric.flushForegroundThreadScheduler();
+
+        SharedPrefsHelper.setPrefsValue(R.string.settings_key_night_mode_vibration_control, false);
+        application.onConfigurationChanged(configurationForNightMode(Configuration.UI_MODE_NIGHT_YES));
+
+        Robolectric.flushForegroundThreadScheduler();
+
+        mAnySoftKeyboardUnderTest.onPress(KeyCodes.SPACE);
+        Assert.assertTrue(shadowVibrator.isVibrating());
     }
 
     @Test

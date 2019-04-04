@@ -2,8 +2,9 @@ package com.anysoftkeyboard.quicktextkeys;
 
 import static com.anysoftkeyboard.ime.AnySoftKeyboardKeyboardTagsSearcher.MAGNIFYING_GLASS_CHARACTER;
 
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
+import static java.util.Arrays.asList;
+
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 
 import com.anysoftkeyboard.AnySoftKeyboardRobolectricTestRunner;
 import com.anysoftkeyboard.dictionaries.KeyCodesProvider;
@@ -17,12 +18,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.robolectric.Robolectric;
-import org.robolectric.RuntimeEnvironment;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 @RunWith(AnySoftKeyboardRobolectricTestRunner.class)
 public class TagsExtractorTest {
@@ -63,8 +64,8 @@ public class TagsExtractorTest {
         Mockito.doReturn(Arrays.asList("person", "face", "happy")).when((AnyKeyboard.AnyKey) keysForTest2.get(1)).getKeyTags();
         Mockito.doReturn(Arrays.asList("tree", "palm")).when((AnyKeyboard.AnyKey) keysForTest2.get(2)).getKeyTags();
         Mockito.doReturn(Arrays.asList("face")).when((AnyKeyboard.AnyKey) keysForTest2.get(3)).getKeyTags();
-        mQuickKeyHistoryRecords = new QuickKeyHistoryRecords(AnyApplication.prefs(RuntimeEnvironment.application));
-        mUnderTest = new TagsExtractorImpl(RuntimeEnvironment.application, Arrays.asList(keysForTest, keysForTest2), mQuickKeyHistoryRecords);
+        mQuickKeyHistoryRecords = new QuickKeyHistoryRecords(AnyApplication.prefs(getApplicationContext()));
+        mUnderTest = new TagsExtractorImpl(getApplicationContext(), asList(keysForTest, keysForTest2), mQuickKeyHistoryRecords);
 
         Robolectric.flushBackgroundThreadScheduler();
         Robolectric.flushForegroundThreadScheduler();
@@ -75,7 +76,7 @@ public class TagsExtractorTest {
 
     @Test
     public void getOutputForTag() throws Exception {
-        final List<CharSequence> happyList = setOutputForTag("happy");
+        final List<String> happyList = setOutputForTag("happy");
         Assert.assertEquals(2, happyList.size());
         //although there are two keys that output HAPPY, they will be merged into one output.
         Assert.assertArrayEquals(new String[]{MAGNIFYING_GLASS_CHARACTER + "happy", "HAPPY"}, happyList.toArray());
@@ -103,7 +104,7 @@ public class TagsExtractorTest {
 
     @Test
     public void testShowSuggestionWhenIncompleteTyped() throws Exception {
-        final List<CharSequence> outputForTag = setOutputForTag("pa");
+        final List<String> outputForTag = setOutputForTag("pa");
         Assert.assertEquals(2, outputForTag.size());
         Assert.assertEquals(MAGNIFYING_GLASS_CHARACTER + "pa", outputForTag.get(0));
         Assert.assertEquals("PALM", outputForTag.get(1));
@@ -121,7 +122,6 @@ public class TagsExtractorTest {
     @Test
     public void testShowHistoryWhenStartingTagSearch() throws Exception {
         //adding history
-        final SharedPreferences defaultSharedPreferences = PreferenceManager.getDefaultSharedPreferences(RuntimeEnvironment.application);
         List<QuickKeyHistoryRecords.HistoryKey> history = mQuickKeyHistoryRecords.getCurrentHistory();
         Assert.assertEquals(1, history.size());
         mQuickKeyHistoryRecords.store("palm", "PALM");
@@ -129,7 +129,7 @@ public class TagsExtractorTest {
         Assert.assertEquals(2, history.size());
         mQuickKeyHistoryRecords.store("tree", "TREE");
         //simulating start of tag search
-        final List<CharSequence> outputForTag = setOutputForTag("");
+        final List<String> outputForTag = setOutputForTag("");
         Assert.assertEquals(4, outputForTag.size());
         Assert.assertEquals(MAGNIFYING_GLASS_CHARACTER, outputForTag.get(0));
         Assert.assertEquals("TREE", outputForTag.get(1));
@@ -139,17 +139,22 @@ public class TagsExtractorTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testEmptyTagsListIsUnmodifiable() throws Exception {
-        final List<CharSequence> list = setOutputForTag("ddd");
+        final List<CharSequence> list = getOriginalOutputsForTag("ddd");
         list.add("should fail");
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testNoneEmptyTagsListIsUnmodifiable() throws Exception {
-        final List<CharSequence> list = setOutputForTag("face");
+        final List<CharSequence> list = getOriginalOutputsForTag("face");
         list.add("should fail");
     }
 
-    private List<CharSequence> setOutputForTag(String typedTag) {
+    private List<String> setOutputForTag(String typedTag) {
+        final List<CharSequence> outputForTag = getOriginalOutputsForTag(typedTag);
+        return outputForTag.stream().map(Object::toString).collect(Collectors.toList());
+    }
+
+    private List<CharSequence> getOriginalOutputsForTag(String typedTag) {
         final String typedText = ":" + typedTag;
 
         final KeyCodesProvider provider = Mockito.mock(KeyCodesProvider.class);

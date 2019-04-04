@@ -30,12 +30,11 @@ import com.anysoftkeyboard.keyboards.AnyKeyboard;
 import com.anysoftkeyboard.keyboards.Keyboard;
 import com.anysoftkeyboard.keyboards.KeyboardAddOnAndBuilder;
 import com.anysoftkeyboard.keyboards.KeyboardSwitcher;
-import com.anysoftkeyboard.theme.KeyboardTheme;
 import com.menny.android.anysoftkeyboard.AnyApplication;
 
 import java.util.List;
 
-public abstract class AnySoftKeyboardKeyboardSwitchedListener extends AnySoftKeyboardPowerSaving
+public abstract class AnySoftKeyboardKeyboardSwitchedListener extends AnySoftKeyboardRxPrefs
         implements KeyboardSwitcher.KeyboardSwitchedListener {
 
     private KeyboardSwitcher mKeyboardSwitcher;
@@ -86,15 +85,6 @@ public abstract class AnySoftKeyboardKeyboardSwitchedListener extends AnySoftKey
     public void onAddOnsCriticalChange() {
         mKeyboardSwitcher.flushKeyboardsCache();
         super.onAddOnsCriticalChange();
-    }
-
-    @Override
-    protected void onKeyboardThemeChanged(@NonNull KeyboardTheme theme) {
-        super.onKeyboardThemeChanged(theme);
-        if (getInputView() != null) {
-            mKeyboardSwitcher.flushKeyboardsCache();
-            hideWindow();
-        }
     }
 
     @Override
@@ -185,7 +175,7 @@ public abstract class AnySoftKeyboardKeyboardSwitchedListener extends AnySoftKey
         //every time we change the alphabet keyboard, we want to OS to acknowledge
         //before we allow another subtype switch via event
         if (mExpectedSubtypeChangeKeyboardId != null) {
-            if (mExpectedSubtypeChangeKeyboardId.equals(newSubtypeExtraValue)) {
+            if (TextUtils.equals(mExpectedSubtypeChangeKeyboardId, newSubtypeExtraValue)) {
                 mExpectedSubtypeChangeKeyboardId = null;//got it!
             } else {
                 //still waiting for the reported keyboard-id
@@ -195,18 +185,15 @@ public abstract class AnySoftKeyboardKeyboardSwitchedListener extends AnySoftKey
         //2) current alphabet keyboard is null
         if (mCurrentAlphabetKeyboard == null) return true;
         //3) (special - discarding) the requested subtype keyboard id is what we already have
-        if (newSubtypeExtraValue.equals(mCurrentAlphabetKeyboard.getKeyboardId())) return false;
-
-        //well, I guess we should do something with it
-        return true;
+        return !TextUtils.equals(newSubtypeExtraValue, mCurrentAlphabetKeyboard.getKeyboardId());
     }
 
     @Override
     protected void onSharedPreferenceChange(String key) {
-        super.onSharedPreferenceChange(key);
-
         if (key.startsWith(Keyboard.PREF_KEY_ROW_MODE_ENABLED_PREFIX)) {
             mKeyboardSwitcher.flushKeyboardsCache();
+        } else {
+            super.onSharedPreferenceChange(key);
         }
     }
 

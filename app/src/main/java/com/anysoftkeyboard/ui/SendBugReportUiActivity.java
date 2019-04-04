@@ -26,8 +26,8 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.anysoftkeyboard.ui.dev.LogCatViewFragment;
 import com.anysoftkeyboard.base.utils.Logger;
+import com.anysoftkeyboard.ui.dev.LogCatViewFragment;
 import com.menny.android.anysoftkeyboard.BuildConfig;
 import com.menny.android.anysoftkeyboard.R;
 
@@ -98,7 +98,7 @@ public class SendBugReportUiActivity extends FragmentActivity {
                 throw new IllegalArgumentException("Activity started without " + EXTRA_KEY_BugReportDetails + " extra!");
             finish();
         } else {
-            if (mCrashReportDetails.throwable == null || (!BuildConfig.DEBUG)) {
+            if (mCrashReportDetails.throwable == null || !BuildConfig.DEBUG) {
             /*not showing the type of crash in RELEASE mode*/
                 crashTypeView.setVisibility(View.GONE);
             } else {

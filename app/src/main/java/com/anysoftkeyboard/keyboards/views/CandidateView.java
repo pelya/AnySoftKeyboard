@@ -17,6 +17,7 @@
 package com.anysoftkeyboard.keyboards.views;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -36,9 +37,12 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.anysoftkeyboard.AnySoftKeyboard;
 import com.anysoftkeyboard.addons.AddOn;
 import com.anysoftkeyboard.base.utils.Logger;
+import com.anysoftkeyboard.ime.AnySoftKeyboardSuggestions;
+import com.anysoftkeyboard.overlay.OverlayData;
+import com.anysoftkeyboard.overlay.ThemeOverlayCombiner;
+import com.anysoftkeyboard.overlay.ThemeResourcesHolder;
 import com.anysoftkeyboard.rx.GenericOnError;
 import com.anysoftkeyboard.theme.KeyboardTheme;
 import com.menny.android.anysoftkeyboard.AnyApplication;
@@ -51,7 +55,7 @@ import java.util.List;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.disposables.Disposables;
 
-public class CandidateView extends View {
+public class CandidateView extends View implements ThemeableChild {
 
     private static final String TAG = "ASK CandidateView";
 
@@ -64,13 +68,11 @@ public class CandidateView extends View {
     private final ArrayList<CharSequence> mSuggestions = new ArrayList<>();
     private final Drawable mSelectionHighlight;
     private float mHorizontalGap;
-    private int mColorNormal;
-    private int mColorRecommended;
-    private int mColorOther;
+    private final ThemeOverlayCombiner mThemeOverlayCombiner = new ThemeOverlayCombiner();
     private final Paint mPaint;
     private final TextPaint mTextPaint;
     private final GestureDetector mGestureDetector;
-    private AnySoftKeyboard mService;
+    private AnySoftKeyboardSuggestions mService;
     private boolean mNoticing = false;
     private CharSequence mSelectedString;
     private CharSequence mJustAddedWord;
@@ -114,14 +116,22 @@ public class CandidateView extends View {
         scrollTo(0, getScrollY());
     }
 
+    @Override
+    public void setThemeOverlay(OverlayData overlay) {
+        mThemeOverlayCombiner.setOverlayData(overlay);
+        setBackgroundDrawable(mThemeOverlayCombiner.getThemeResources().getKeyboardBackground());
+        invalidate();
+    }
+
+    @Override
     public void setKeyboardTheme(@NonNull KeyboardTheme theme) {
         final Context context = getContext();
         final AddOn.AddOnResourceMapping remoteAttrs = theme.getResourceMapping();
         final int[] remoteStyleableArray = remoteAttrs.getRemoteStyleableArrayFromLocal(R.styleable.AnyKeyboardViewTheme);
         TypedArray a = theme.getPackageContext().obtainStyledAttributes(theme.getThemeResId(), remoteStyleableArray);
-        mColorNormal = ContextCompat.getColor(context, R.color.candidate_normal);
-        mColorOther = ContextCompat.getColor(context, R.color.candidate_other);
-        mColorRecommended = ContextCompat.getColor(context, R.color.candidate_recommended);
+        mThemeOverlayCombiner.setThemeTextColor(new ColorStateList(new int[][]{{0}}, new int[]{ContextCompat.getColor(context, R.color.candidate_normal)}));
+        mThemeOverlayCombiner.setThemeNameTextColor(ContextCompat.getColor(context, R.color.candidate_recommended));
+        mThemeOverlayCombiner.setThemeHintTextColor(ContextCompat.getColor(context, R.color.candidate_other));
         mHorizontalGap = context.getResources().getDimensionPixelSize(R.dimen.candidate_strip_x_gap);
         mDivider = null;
         mCloseDrawable = null;
@@ -136,13 +146,15 @@ public class CandidateView extends View {
                 //CHECKSTYLE:OFF: missingswitchdefault
                 switch (remoteAttrs.getLocalAttrId(remoteStyleableArray[remoteIndex])) {
                     case R.attr.suggestionNormalTextColor:
-                        mColorNormal = a.getColor(remoteIndex, mColorNormal);
+                        mThemeOverlayCombiner.setThemeNameTextColor(a.getColor(remoteIndex, ContextCompat.getColor(context, R.color.candidate_normal)));
                         break;
                     case R.attr.suggestionRecommendedTextColor:
-                        mColorRecommended = a.getColor(remoteIndex, mColorRecommended);
+                        mThemeOverlayCombiner.setThemeTextColor(new ColorStateList(new int[][]{{0}}, new int[]{
+                                a.getColor(remoteIndex, ContextCompat.getColor(context, R.color.candidate_recommended))
+                        }));
                         break;
                     case R.attr.suggestionOthersTextColor:
-                        mColorOther = a.getColor(remoteIndex, mColorOther);
+                        mThemeOverlayCombiner.setThemeHintTextColor(a.getColor(remoteIndex, ContextCompat.getColor(context, R.color.candidate_other)));
                         break;
                     case R.attr.suggestionDividerImage:
                         mDivider = a.getDrawable(remoteIndex);
@@ -160,7 +172,8 @@ public class CandidateView extends View {
                         final Drawable stripImage = a.getDrawable(remoteIndex);
                         if (stripImage != null) {
                             setBackgroundColor(Color.TRANSPARENT);
-                            setBackgroundDrawable(stripImage);
+                            mThemeOverlayCombiner.setThemeKeyboardBackground(stripImage);
+                            setBackgroundDrawable(mThemeOverlayCombiner.getThemeResources().getKeyboardBackground());
                         }
                         break;
                 }
@@ -177,11 +190,12 @@ public class CandidateView extends View {
         if (mCloseDrawable == null) {
             mCloseDrawable = ContextCompat.getDrawable(context, R.drawable.close_suggestions_strip_icon);
         }
-        mPaint.setColor(mColorNormal);
+        mPaint.setColor(mThemeOverlayCombiner.getThemeResources().getKeyTextColor().getDefaultColor());
         mPaint.setAntiAlias(true);
         mPaint.setTextSize(fontSizePixel);
         mPaint.setStrokeWidth(0);
         mPaint.setTextAlign(Align.CENTER);
+        mTextPaint.set(mPaint);
     }
 
     @Override
@@ -202,7 +216,7 @@ public class CandidateView extends View {
     /**
      * A connection back to the service to communicate with the text field
      */
-    public void setService(AnySoftKeyboard listener) {
+    public void setService(AnySoftKeyboardSuggestions listener) {
         mService = listener;
     }
 
@@ -241,6 +255,7 @@ public class CandidateView extends View {
         final boolean scrolled = mScrolled;
         final boolean typedWordValid = mTypedWordValid;
 
+        final ThemeResourcesHolder themeResources = mThemeOverlayCombiner.getThemeResources();
         int x = 0;
         for (int i = 0; i < count; i++) {
             CharSequence suggestion = mSuggestions.get(i);
@@ -249,18 +264,18 @@ public class CandidateView extends View {
             }
             final int wordLength = suggestion.length();
 
-            paint.setColor(mColorNormal);
+            paint.setColor(themeResources.getNameTextColor());
             if (mHaveMinimalSuggestion &&
                     ((i == 1 && !typedWordValid) || (i == 0 && typedWordValid))) {
                 paint.setTypeface(Typeface.DEFAULT_BOLD);
-                paint.setColor(mColorRecommended);
+                paint.setColor(themeResources.getKeyTextColor().getDefaultColor());
                 // existsAutoCompletion = true;
             } else if (i != 0 || (wordLength == 1 && count > 1)) {
                 // HACK: even if i == 0, we use mColorOther when this
                 // suggestion's length is 1 and
                 // there are multiple suggestions, such as the default
                 // punctuation list.
-                paint.setColor(mColorOther);
+                paint.setColor(themeResources.getHintTextColor());
             }
 
             // now that we set the typeFace, we can measure
@@ -311,11 +326,11 @@ public class CandidateView extends View {
                     canvas.translate(-textX, -textY);
                 }
                 // (-)
-                paint.setColor(mColorOther);
+                paint.setColor(themeResources.getHintTextColor());
                 canvas.translate(x + wordWidth, 0);
                 // Draw a divider unless it's after the hint
                 //or the last suggested word
-                if (count > 1 && (!mShowingAddToDictionary) && i != (count - 1)) {
+                if (count > 1 && !mShowingAddToDictionary && i != (count - 1)) {
                     canvas.translate(0, dividerYOffset);
                     mDivider.draw(canvas);
                     canvas.translate(0, -dividerYOffset);
@@ -429,32 +444,28 @@ public class CandidateView extends View {
 
         switch (action) {
             case MotionEvent.ACTION_MOVE:
-                if (y <= 0) {
-                    // Fling up!?
-                    //Fling up should be a hacker's way to delete words (user dictionary words)
-                    if (mSelectedString != null) {
-                        Logger.d(TAG, "Fling up from candidates view. Deleting word at index %d, which is %s", mSelectedIndex, mSelectedString);
-                        mService.removeFromUserDictionary(mSelectedString.toString());
-                        clear();//clear also calls invalidate().
-                    }
+                // Fling up!?
+                //Fling up should be a hacker's way to delete words (user dictionary words)
+                if (y <= 0 && mSelectedString != null) {
+                    Logger.d(TAG, "Fling up from candidates view. Deleting word at index %d, which is %s", mSelectedIndex, mSelectedString);
+                    mService.removeFromUserDictionary(mSelectedString.toString());
+                    clear();//clear also calls invalidate().
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                if (!mScrolled) {
-                    if (mSelectedString != null) {
-                        if (mShowingAddToDictionary) {
-                            final CharSequence word = mSuggestions.get(0);
-                            if (word.length() >= 2 && !mNoticing) {
-                                Logger.d(TAG, "User wants to add the word '%s' to the user-dictionary.", word);
-                                mService.addWordToDictionary(word.toString());
-                            }
-                        } else if (!mNoticing) {
-                            mService.pickSuggestionManually(mSelectedIndex, mSelectedString);
-                        } else if (mSelectedIndex == 1 && !TextUtils.isEmpty(mJustAddedWord)) {
-                            // 1 is the index of "Remove?"
-                            Logger.d(TAG, "User wants to remove an added word '%s'", mJustAddedWord);
-                            mService.removeFromUserDictionary(mJustAddedWord.toString());
+                if (!mScrolled && mSelectedString != null) {
+                    if (mShowingAddToDictionary) {
+                        final CharSequence word = mSuggestions.get(0);
+                        if (word.length() >= 2 && !mNoticing) {
+                            Logger.d(TAG, "User wants to add the word '%s' to the user-dictionary.", word);
+                            mService.addWordToDictionary(word.toString());
                         }
+                    } else if (!mNoticing) {
+                        mService.pickSuggestionManually(mSelectedIndex, mSelectedString);
+                    } else if (mSelectedIndex == 1 && !TextUtils.isEmpty(mJustAddedWord)) {
+                        // 1 is the index of "Remove?"
+                        Logger.d(TAG, "User wants to remove an added word '%s'", mJustAddedWord);
+                        mService.removeFromUserDictionary(mJustAddedWord.toString());
                     }
                 }
                 //allowing fallthrough to call invalidate.
@@ -491,7 +502,7 @@ public class CandidateView extends View {
     }
 
     public int getTextOthersColor() {
-        return mColorOther;
+        return mThemeOverlayCombiner.getThemeResources().getHintTextColor();
     }
 
     public float getTextSize() {
